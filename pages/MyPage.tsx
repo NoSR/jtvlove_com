@@ -35,6 +35,11 @@ const MyPage: React.FC = () => {
   const [showDocModal, setShowDocModal] = useState(false);
   const [docData, setDocData] = useState({ title: '', content: '' });
 
+  // Points States
+  const [showPointHistoryModal, setShowPointHistoryModal] = useState(false);
+  const [pointLogs, setPointLogs] = useState<any[]>([]);
+  const [showAddPointsModal, setShowAddPointsModal] = useState(false);
+
   useEffect(() => {
     if (!authUser) {
       navigate('/login');
@@ -163,6 +168,15 @@ const MyPage: React.FC = () => {
       const data = await apiService.getSiteDoc(type);
       setDocData({ title, content: data.content });
     } catch (err) { setDocData({ title, content: 'Failed to load content.' }); }
+  };
+
+  const handleShowPointHistory = async () => {
+    if (!user) return;
+    setShowPointHistoryModal(true);
+    try {
+      const data = await apiService.getUserPointLogs(user.id);
+      setPointLogs(data);
+    } catch (err) { console.error(err); }
   };
 
   if (loading || !user) return <div className="flex items-center justify-center min-h-[60vh] text-primary animate-pulse font-black uppercase tracking-widest text-xs">Accessing Data...</div>;
@@ -420,8 +434,8 @@ const MyPage: React.FC = () => {
                   <h4 className="text-5xl font-black mb-8 tracking-tighter">{(user.points || 0).toLocaleString()}<span className="text-sm text-zinc-400 ml-2 uppercase tracking-widest font-bold">P</span></h4>
 
                   <div className="flex gap-3 relative z-10">
-                    <button className="bg-primary text-[#1b180d] px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all">Add Points</button>
-                    <button className="bg-white/10 backdrop-blur-md px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all">Point History</button>
+                    <button onClick={() => setShowAddPointsModal(true)} className="bg-primary text-[#1b180d] px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all">Add Points</button>
+                    <button onClick={handleShowPointHistory} className="bg-white/10 backdrop-blur-md px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20 transition-all">Point History</button>
                   </div>
                 </div>
 
@@ -608,6 +622,86 @@ const MyPage: React.FC = () => {
             </div>
             <div className="overflow-y-auto p-10 prose prose-sm dark:prose-invert max-w-none">
               <div dangerouslySetInnerHTML={{ __html: docData.content }} />
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Point History Modal */}
+      {showPointHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowPointHistoryModal(false)}>
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-lg max-h-[80vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md z-10">
+              <h3 className="font-black text-lg">Point History</h3>
+              <button onClick={() => setShowPointHistoryModal(false)} className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 space-y-3">
+              {pointLogs.length > 0 ? pointLogs.map((log, i) => (
+                <div key={i} className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-transparent flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${log.amount > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                    <span className="material-symbols-outlined">{log.amount > 0 ? 'add_circle' : 'do_not_disturb_on'}</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-black text-zinc-800 dark:text-zinc-200">{log.description || (log.amount > 0 ? 'Point Recharge' : 'Point Usage')}</p>
+                    <p className="text-[10px] text-zinc-400 uppercase font-bold">{new Date(log.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-black ${log.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {log.amount > 0 ? `+${log.amount.toLocaleString()}` : `${log.amount.toLocaleString()}`} P
+                    </p>
+                  </div>
+                </div>
+              )) : <div className="py-20 text-center text-zinc-400 font-bold uppercase tracking-widest text-[10px]">No point records found</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Points Guide Modal */}
+      {showAddPointsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setShowAddPointsModal(false)}>
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-xl rounded-[2rem] shadow-2xl flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+              <h3 className="font-black text-lg">Point Recharge Guide</h3>
+              <button onClick={() => setShowAddPointsModal(false)} className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="bg-primary/5 p-6 rounded-2xl border border-primary/20 space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary">account_balance</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">Deposit Account</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xl font-black text-zinc-900 dark:text-white">우리은행 1002-XXX-XXXXXX</p>
+                  <p className="text-sm font-bold text-zinc-500">예금주: 홍길동 (PH-JTV 협회)</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Recharge Process</h4>
+                <div className="grid grid-cols-1 gap-3">
+                  {[
+                    { step: '01', text: '입금하실 금액을 위 계좌로 송금해 주세요.' },
+                    { step: '02', text: '1:1 문의 센터 혹은 텔레그램으로 입금자명과 금액을 남겨주세요.' },
+                    { step: '03', text: '슈퍼관리자 확인 후 5~10분 이내에 포인트가 지급됩니다.' }
+                  ].map(item => (
+                    <div key={item.step} className="flex gap-4 p-4 bg-zinc-50 dark:bg-white/5 rounded-xl border border-zinc-100 dark:border-transparent items-center">
+                      <span className="text-primary font-black text-xs">{item.step}</span>
+                      <p className="text-xs font-bold text-zinc-600 dark:text-zinc-300">{item.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => { setShowAddPointsModal(false); setActiveTab('service'); handleShowInquiry(); }}
+                className="w-full bg-primary py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-[#1b180d] hover:opacity-90 transition-all font-black"
+              >
+                Go to Inquiry Center
+              </button>
             </div>
           </div>
         </div>

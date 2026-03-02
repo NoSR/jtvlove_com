@@ -916,6 +916,17 @@ export const apiService = {
       console.error('getSiteDoc error:', error);
       return { content: '내용을 불러올 수 없습니다.' };
     }
+  },
+
+  async getUserPointLogs(userId: string): Promise<any[]> {
+    try {
+      const response = await fetch(`${API_BASE}/user-points?userId=${encodeURIComponent(userId)}`);
+      if (!response.ok) throw new Error('Point logs not found');
+      return await response.json();
+    } catch (error) {
+      console.error('getUserPointLogs error:', error);
+      return [];
+    }
   }
 };
 
