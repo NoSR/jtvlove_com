@@ -13,6 +13,8 @@ import PostDetail from './pages/PostDetail';
 import MyPage from './pages/MyPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import NoticeCenter from './pages/NoticeCenter';
+import Policy from './pages/Policy';
 
 
 // Admin & Portal
@@ -109,6 +111,36 @@ const Navigation = () => {
               </div>
             </div>
 
+            <div className="relative group py-4">
+              <Link to="/notice" className={`text-sm font-bold transition-colors flex items-center gap-1 ${location.pathname.startsWith('/notice') || location.pathname.startsWith('/policy') ? 'text-primary' : 'hover:text-primary'}`}>
+                공지/이벤트
+                <span className="material-symbols-outlined text-xs group-hover:rotate-180 transition-transform">expand_more</span>
+              </Link>
+              <div className="absolute top-14 left-1/2 -translate-x-1/2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 p-2 z-[60]">
+                <Link to="/notice?type=Notice" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-white/5 text-[11px] font-black uppercase tracking-widest transition-colors">
+                  <span className="material-symbols-outlined text-sm text-primary">campaign</span>
+                  공지사항
+                </Link>
+                <Link to="/notice?type=Event" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-white/5 text-[11px] font-black uppercase tracking-widest transition-colors">
+                  <span className="material-symbols-outlined text-sm text-primary">celebration</span>
+                  이벤트
+                </Link>
+                <Link to="/notice?type=FAQ" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-white/5 text-[11px] font-black uppercase tracking-widest transition-colors">
+                  <span className="material-symbols-outlined text-sm text-primary">quiz</span>
+                  FAQ
+                </Link>
+                <div className="h-px bg-gray-100 dark:bg-white/5 my-1 mx-2"></div>
+                <Link to="/policy?type=terms" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-white/5 text-[10px] font-bold uppercase tracking-tighter opacity-70 hover:opacity-100">
+                  <span className="material-symbols-outlined text-sm">gavel</span>
+                  이용약관
+                </Link>
+                <Link to="/policy?type=privacy" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-50 dark:hover:bg-white/5 text-[10px] font-bold uppercase tracking-tighter opacity-70 hover:opacity-100">
+                  <span className="material-symbols-outlined text-sm">privacy_tip</span>
+                  개인정보 처리방침
+                </Link>
+              </div>
+            </div>
+
             <Link to="/mypage" className={`text-sm font-bold transition-colors ${isActive('/mypage') ? 'text-primary' : 'hover:text-primary'}`}>마이페이지</Link>
             <div className="flex gap-2">
               <Link to="/admin" className="text-[10px] font-black bg-zinc-100 dark:bg-white/5 px-3 py-1 rounded-full uppercase">업주용</Link>
@@ -194,6 +226,8 @@ const App: React.FC = () => {
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/notice" element={<NoticeCenter />} />
+          <Route path="/policy" element={<Policy />} />
 
           {/* Admin Routes */}
           <Route path="/admin/*" element={<AdminLayoutRoutes />} />
