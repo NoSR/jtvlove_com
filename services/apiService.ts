@@ -35,42 +35,68 @@ export const apiService = {
   },
 
   async uploadImage(file: File): Promise<string | null> {
-    // 파일 크기 체크 (D1 1MB 제한 고려하여 700KB로 제한)
-    if (file.size > 700 * 1024) {
-      alert("파일 크기가 너무 큽니다. 700KB 이하의 이미지를 사용해주세요. (D1 데이터베이스 제한)");
-      return null;
-    }
+    const compressImage = (file: File): Promise<string> => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1200;
+            const MAX_HEIGHT = 1200;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+              if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+              }
+            } else {
+              if (height > MAX_HEIGHT) {
+                width *= MAX_HEIGHT / height;
+                height = MAX_HEIGHT;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+
+            // 품질 0.7로 압축 (D1 용량 최적화)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            resolve(dataUrl);
+          };
+        };
+      });
+    };
 
     try {
-      // 1. 서버 업로드 시도
+      const compressedDataUrl = await compressImage(file);
+
+      // Blob으로 변환하여 서버 전송 시도
+      const response = await fetch(compressedDataUrl);
+      const blob = await response.blob();
       const formData = new FormData();
-      formData.append('file', file);
-      const response = await fetch(`${API_BASE}/upload`, {
+      formData.append('file', blob, 'image.jpg');
+
+      const uploadResult = await fetch(`${API_BASE}/upload`, {
         method: 'POST',
         body: formData,
       });
 
-      if (response.ok) {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const data = await response.json();
-          if (data.url) return data.url;
-        }
+      if (uploadResult.ok) {
+        const data = await uploadResult.json();
+        if (data.url) return data.url;
       }
+      return compressedDataUrl; // 서버 업로드 실패 시 로컬 Base64(압축본) 반환
     } catch (error) {
-      console.warn("Server upload failed, using client-side fallback");
+      console.error('uploadImage error:', error);
+      return null;
     }
-
-    // 2. 서버 업로드 실패 시 클라이언트 측에서 Base64 변환 후 반환
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => {
-        console.error("FileReader error");
-        resolve(null);
-      };
-      reader.readAsDataURL(file);
-    });
   },
 
   // Venues

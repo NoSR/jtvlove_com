@@ -617,12 +617,11 @@ const SuperPartners: React.FC = () => {
                                              )}
                                              <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                                                 <span className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-6 py-3 rounded-2xl">Upload Logo</span>
-                                                <input type="file" className="hidden" accept="image/*" onChange={e => {
+                                                <input type="file" className="hidden" accept="image/*" onChange={async e => {
                                                    const file = e.target.files?.[0];
                                                    if (file) {
-                                                      const reader = new FileReader();
-                                                      reader.onloadend = () => setEditForm({ ...editForm, image: reader.result as string });
-                                                      reader.readAsDataURL(file);
+                                                      const url = await apiService.uploadImage(file);
+                                                      if (url) setEditForm({ ...editForm, image: url });
                                                    }
                                                 }} />
                                              </label>
@@ -639,12 +638,11 @@ const SuperPartners: React.FC = () => {
                                              )}
                                              <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                                                 <span className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-6 py-3 rounded-2xl">Upload Banner</span>
-                                                <input type="file" className="hidden" accept="image/*" onChange={e => {
+                                                <input type="file" className="hidden" accept="image/*" onChange={async e => {
                                                    const file = e.target.files?.[0];
                                                    if (file) {
-                                                      const reader = new FileReader();
-                                                      reader.onloadend = () => setEditForm({ ...editForm, banner_image: reader.result as string });
-                                                      reader.readAsDataURL(file);
+                                                      const url = await apiService.uploadImage(file);
+                                                      if (url) setEditForm({ ...editForm, banner_image: url });
                                                    }
                                                 }} />
                                              </label>
@@ -661,18 +659,17 @@ const SuperPartners: React.FC = () => {
                                        <h6 className="text-xs font-black uppercase tracking-widest">Gallery & Neural Archives</h6>
                                        <label className="bg-white text-black px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest cursor-pointer hover:bg-red-600 hover:text-white transition-all">
                                           + Upload Neural Media
-                                          <input type="file" multiple className="hidden" accept="image/*" onChange={e => {
+                                          <input type="file" multiple className="hidden" accept="image/*" onChange={async e => {
                                              const files = Array.from(e.target.files || []);
-                                             files.forEach(f => {
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => {
+                                             for (const f of files) {
+                                                const url = await apiService.uploadImage(f);
+                                                if (url) {
                                                    setEditForm((prev: any) => ({
                                                       ...prev,
-                                                      media: [...(prev.media || []), { id: Date.now() + Math.random(), type: 'image', url: reader.result as string, isExposed: true }]
+                                                      media: [...(prev.media || []), { id: Date.now() + Math.random(), type: 'image', url, isExposed: true }]
                                                    }));
-                                                };
-                                                reader.readAsDataURL(f);
-                                             });
+                                                }
+                                             }
                                           }} />
                                        </label>
                                     </div>
@@ -995,12 +992,11 @@ const SuperPartners: React.FC = () => {
                               )}
                               <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                                  <span className="text-[10px] font-black uppercase tracking-widest bg-white text-black px-6 py-3 rounded-2xl">Upload Photo</span>
-                                 <input type="file" className="hidden" accept="image/*" onChange={e => {
+                                 <input type="file" className="hidden" accept="image/*" onChange={async e => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                       const reader = new FileReader();
-                                       reader.onloadend = () => setMenuEditForm({ ...menuEditForm, image: reader.result as string });
-                                       reader.readAsDataURL(file);
+                                       const url = await apiService.uploadImage(file);
+                                       if (url) setMenuEditForm({ ...menuEditForm, image: url });
                                     }
                                  }} />
                               </label>
