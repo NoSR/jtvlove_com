@@ -97,32 +97,35 @@ export const apiService = {
     }
   },
 
-  async updateVenue(id: string, updates: any): Promise<boolean> {
+  async updateVenue(id: string, updates: any): Promise<{ success: boolean; error?: string }> {
     try {
       const response = await fetch(`${API_BASE}/venues`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ...updates }),
       });
-      return response.ok;
-    } catch (error) {
+      if (response.ok) return { success: true };
+      const data = await response.json().catch(() => ({}));
+      return { success: false, error: data.error || 'Failed to update venue' };
+    } catch (error: any) {
       console.error('updateVenue error:', error);
-      return false;
+      return { success: false, error: error.message };
     }
   },
 
-  async createVenue(data: any): Promise<{ success: boolean; id?: string }> {
+  async createVenue(data: any): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       const response = await fetch(`${API_BASE}/venues`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) return { success: false };
-      return await response.json();
-    } catch (error) {
+      const result = await response.json().catch(() => ({}));
+      if (response.ok) return { success: true, id: result.id };
+      return { success: false, error: result.error || 'Failed to create venue' };
+    } catch (error: any) {
       console.error('createVenue error:', error);
-      return { success: false };
+      return { success: false, error: error.message };
     }
   },
 

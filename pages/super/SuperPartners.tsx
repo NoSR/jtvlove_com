@@ -36,6 +36,12 @@ const SuperPartners: React.FC = () => {
    const [menuEditForm, setMenuEditForm] = useState<{ id?: number, name: string, price: string, category: string, image: string }>({ name: '', price: '', category: '', image: '' });
    const [selectedMenuIdx, setSelectedMenuIdx] = useState<number | null>(null);
 
+   // Table/Room Modal
+   const [showUnitModal, setShowUnitModal] = useState(false);
+   const [unitType, setUnitType] = useState<'table' | 'room'>('table');
+   const [unitEditForm, setUnitEditForm] = useState<{ id?: number, name: string, number: string, capacity: string, image: string }>({ name: '', number: '', capacity: '4', image: '' });
+   const [selectedUnitIdx, setSelectedUnitIdx] = useState<number | null>(null);
+
    useEffect(() => {
       loadData();
    }, [activeTab]);
@@ -190,12 +196,12 @@ const SuperPartners: React.FC = () => {
                ? await apiService.createVenue(updates)
                : await apiService.updateVenue(selectedItem?.id, updates);
 
-            if ((typeof result === 'boolean' && result) || (typeof result === 'object' && result.success)) {
+            if (result.success) {
                alert(`Venue ${isCreateMode ? 'registered' : 'updated'} successfully`);
                setShowDetailModal(false);
                loadData();
             } else {
-               alert("Failed to save venue details. Please check the connection.");
+               alert(`Failed to save venue details: ${result.error || 'Please check the connection.'}`);
             }
          } else {
             // CCA Save Logic
@@ -330,6 +336,49 @@ const SuperPartners: React.FC = () => {
 
       setEditForm({ ...editForm, menu: newMenu });
       setShowMenuModal(false);
+   };
+
+   // Unit (Table/Room) Handlers
+   const handleAddUnit = (type: 'table' | 'room') => {
+      setUnitType(type);
+      setSelectedUnitIdx(null);
+      setUnitEditForm({
+         name: '',
+         number: '',
+         capacity: type === 'table' ? '4' : '10',
+         image: ''
+      });
+      setShowUnitModal(true);
+   };
+
+   const handleEditUnit = (type: 'table' | 'room', item: any, idx: number) => {
+      setUnitType(type);
+      setSelectedUnitIdx(idx);
+      setUnitEditForm({ ...item });
+      setShowUnitModal(true);
+   };
+
+   const handleSaveUnit = () => {
+      if (!unitEditForm.name || !unitEditForm.capacity) {
+         alert("Please enter both name and capacity.");
+         return;
+      }
+
+      const field = unitType === 'table' ? 'tables' : 'rooms';
+      const currentList = [...(editForm[field] || [])];
+      const unitItem = {
+         ...unitEditForm,
+         id: unitEditForm.id || Date.now()
+      };
+
+      if (selectedUnitIdx !== null) {
+         currentList[selectedUnitIdx] = unitItem;
+      } else {
+         currentList.push(unitItem);
+      }
+
+      setEditForm({ ...editForm, [field]: currentList });
+      setShowUnitModal(false);
    };
 
    return (
@@ -703,36 +752,62 @@ const SuperPartners: React.FC = () => {
                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 animate-fade-in">
                                     <div className="space-y-8">
                                        <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                                          <h6 className="text-xs font-black uppercase tracking-widest text-red-500">Deployment Tables</h6>
-                                          <button onClick={() => {
-                                             const name = prompt("Table Name?");
-                                             if (name) setEditForm({ ...editForm, tables: [...(editForm.tables || []), { id: Date.now(), name, number: '0', capacity: '4', image: '' }] });
-                                          }} className="text-[10px] font-black underline">+ Deploy Unit</button>
+                                          <h6 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">Deployment Tables</h6>
+                                          <button onClick={() => handleAddUnit('table')} className="text-[10px] font-black underline uppercase tracking-widest text-gray-500 hover:text-white">+ Deploy Unit</button>
                                        </div>
-                                       <div className="space-y-4">
+                                       <div className="grid grid-cols-1 gap-4">
                                           {(editForm.tables || []).map((t: any, idx: number) => (
-                                             <div key={idx} className="bg-black/40 p-4 rounded-2xl border border-white/5 flex items-center justify-between">
-                                                <span className="text-xs font-black uppercase italic">{t.name} (Cap: {t.capacity})</span>
-                                                <button onClick={() => setEditForm({ ...editForm, tables: editForm.tables.filter((_: any, i: number) => i !== idx) })} className="text-gray-500 hover:text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                             <div key={idx} className="bg-black/40 p-6 rounded-3xl border border-white/5 flex items-center justify-between group hover:border-red-500/30 transition-all">
+                                                <div className="flex items-center gap-4">
+                                                   <div className="size-12 rounded-xl bg-white/5 flex items-center justify-center">
+                                                      <span className="material-symbols-outlined text-gray-500">table_bar</span>
+                                                   </div>
+                                                   <div>
+                                                      <span className="text-xs font-black uppercase italic block">{t.name}</span>
+                                                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 block">Capacity: {t.capacity}</span>
+                                                   </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                   <button onClick={() => handleEditUnit('table', t, idx)} className="size-9 rounded-xl bg-white/5 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center hover:bg-zinc-100 hover:text-black border border-white/5"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                                   <button onClick={() => setEditForm({ ...editForm, tables: editForm.tables.filter((_: any, i: number) => i !== idx) })} className="size-9 rounded-xl bg-white/5 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center hover:bg-red-600 border border-white/5"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                                </div>
                                              </div>
                                           ))}
+                                          {(!editForm.tables || editForm.tables.length === 0) && (
+                                             <div className="py-12 border border-dashed border-white/5 rounded-3xl text-center">
+                                                <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">No tables deployed</p>
+                                             </div>
+                                          )}
                                        </div>
                                     </div>
                                     <div className="space-y-8">
                                        <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                                          <h6 className="text-xs font-black uppercase tracking-widest text-primary">Private VIP Rooms</h6>
-                                          <button onClick={() => {
-                                             const name = prompt("Room Name?");
-                                             if (name) setEditForm({ ...editForm, rooms: [...(editForm.rooms || []), { id: Date.now(), name, number: '0', capacity: '10', image: '' }] });
-                                          }} className="text-[10px] font-black underline">+ Sync Node</button>
+                                          <h6 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Private VIP Rooms</h6>
+                                          <button onClick={() => handleAddUnit('room')} className="text-[10px] font-black underline uppercase tracking-widest text-gray-500 hover:text-white">+ Sync Node</button>
                                        </div>
-                                       <div className="space-y-4">
+                                       <div className="grid grid-cols-1 gap-4">
                                           {(editForm.rooms || []).map((r: any, idx: number) => (
-                                             <div key={idx} className="bg-black/40 p-4 rounded-2xl border border-white/5 flex items-center justify-between">
-                                                <span className="text-xs font-black uppercase italic">{r.name} (Cap: {r.capacity})</span>
-                                                <button onClick={() => setEditForm({ ...editForm, rooms: editForm.rooms.filter((_: any, i: number) => i !== idx) })} className="text-gray-500 hover:text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                             <div key={idx} className="bg-black/40 p-6 rounded-3xl border border-white/5 flex items-center justify-between group hover:border-white/20 transition-all">
+                                                <div className="flex items-center gap-4">
+                                                   <div className="size-12 rounded-xl bg-white/5 flex items-center justify-center">
+                                                      <span className="material-symbols-outlined text-gray-500">meeting_room</span>
+                                                   </div>
+                                                   <div>
+                                                      <span className="text-xs font-black uppercase italic block">{r.name}</span>
+                                                      <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 block">Capacity: {r.capacity}</span>
+                                                   </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                   <button onClick={() => handleEditUnit('room', r, idx)} className="size-9 rounded-xl bg-white/5 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center hover:bg-zinc-100 hover:text-black border border-white/5"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                                   <button onClick={() => setEditForm({ ...editForm, rooms: editForm.rooms.filter((_: any, i: number) => i !== idx) })} className="size-9 rounded-xl bg-white/5 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center hover:bg-red-600 border border-white/5"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                                </div>
                                              </div>
                                           ))}
+                                          {(!editForm.rooms || editForm.rooms.length === 0) && (
+                                             <div className="py-12 border border-dashed border-white/5 rounded-3xl text-center">
+                                                <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">No private units detected</p>
+                                             </div>
+                                          )}
                                        </div>
                                     </div>
                                  </div>
@@ -956,6 +1031,43 @@ const SuperPartners: React.FC = () => {
                         <div className="flex gap-4 pt-4">
                            <button onClick={() => setShowMenuModal(false)} className="flex-1 py-4 border border-white/10 text-gray-400 rounded-2xl font-black uppercase text-[10px] hover:bg-white/5 transition-all">Cancel</button>
                            <button onClick={handleSaveMenu} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-red-600/20 hover:scale-[1.02] transition-all">Confirm Menu</button>
+                        </div>
+                     </div>
+                  </motion.div>
+               </div>
+            )}
+         </AnimatePresence>
+         {/* UNIT MODAL (Table/Room) */}
+         <AnimatePresence>
+            {showUnitModal && (
+               <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowUnitModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-zinc-950 border border-white/10 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl z-10 flex flex-col" >
+                     <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                        <h4 className="text-lg font-black uppercase italic tracking-widest text-white">{selectedUnitIdx !== null ? 'Configure' : 'Deploy'} {unitType === 'table' ? 'Unit' : 'Private Node'}</h4>
+                        <button onClick={() => setShowUnitModal(false)} className="size-10 rounded-xl bg-white/5 text-white flex items-center justify-center hover:bg-red-600 transition-all"><span className="material-symbols-outlined text-sm">close</span></button>
+                     </div>
+                     <div className="p-8 space-y-6">
+                        <div className="space-y-6">
+                           <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-500 uppercase ml-1">{unitType === 'table' ? 'Display Name' : 'Node Designation'}</label>
+                              <input type="text" value={unitEditForm.name} onChange={e => setUnitEditForm({ ...unitEditForm, name: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold" placeholder={unitType === 'table' ? "e.g., Lounge 01" : "e.g., VIP Platinum"} />
+                           </div>
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                 <label className="text-[10px] font-black text-gray-500 uppercase ml-1">Capacity</label>
+                                 <input type="number" value={unitEditForm.capacity} onChange={e => setUnitEditForm({ ...unitEditForm, capacity: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold" placeholder="4" />
+                              </div>
+                              <div className="space-y-2">
+                                 <label className="text-[10px] font-black text-gray-500 uppercase ml-1">ID (Optional)</label>
+                                 <input type="text" value={unitEditForm.number} onChange={e => setUnitEditForm({ ...unitEditForm, number: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white font-bold" placeholder="Unit ID" />
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="flex gap-4 pt-4">
+                           <button onClick={() => setShowUnitModal(false)} className="flex-1 py-4 border border-white/10 text-gray-400 rounded-2xl font-black uppercase text-[10px] hover:bg-white/5 transition-all">Cancel</button>
+                           <button onClick={handleSaveUnit} className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-red-600/20 hover:scale-[1.02] transition-all">Establish Protocol</button>
                         </div>
                      </div>
                   </motion.div>
