@@ -15,6 +15,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import NoticeCenter from './pages/NoticeCenter';
 import Policy from './pages/Policy';
+import Footer from './pages/Footer';
 
 
 // Admin & Portal
@@ -210,6 +211,17 @@ const Navigation = () => {
   );
 };
 
+const FooterWrapper = () => {
+  const location = useLocation();
+  const isSpecial = location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/cca-portal') ||
+    location.pathname.startsWith('/super-admin') ||
+    location.pathname === '/login' ||
+    location.pathname === '/register';
+  if (isSpecial) return null;
+  return <Footer />;
+};
+
 const App: React.FC = () => {
   return (
     <Router>
@@ -238,6 +250,7 @@ const App: React.FC = () => {
           {/* Super Admin Routes */}
           <Route path="/super-admin/*" element={<SuperAdminLayout><SuperAdminRoutes /></SuperAdminLayout>} />
         </Routes>
+        <FooterWrapper />
       </div>
     </Router>
   );
