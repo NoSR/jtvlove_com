@@ -44,8 +44,8 @@ export const apiService = {
           img.src = event.target?.result as string;
           img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1200;
-            const MAX_HEIGHT = 1200;
+            const MAX_WIDTH = 800;
+            const MAX_HEIGHT = 800;
             let width = img.width;
             let height = img.height;
 
@@ -66,8 +66,8 @@ export const apiService = {
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, 0, 0, width, height);
 
-            // 품질 0.7로 압축 (D1 용량 최적화)
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            // 품질 0.5로 더 강력하게 압축 (D1 용량 문제 해결)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
             resolve(dataUrl);
           };
         };
