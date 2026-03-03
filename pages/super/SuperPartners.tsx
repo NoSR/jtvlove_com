@@ -101,9 +101,9 @@ const SuperPartners: React.FC = () => {
             oneLineStory: '',
             specialties: [],
             languages: ['ENGLISH'],
-            drinking: 'Occasional',
-            smoking: 'Non-smoker',
-            pets: 'None',
+            drinking: '',
+            smoking: '',
+            pets: '',
             maritalStatus: 'SINGLE',
             childrenStatus: 'NONE',
             status: 'active',
@@ -431,7 +431,7 @@ const SuperPartners: React.FC = () => {
                         {(activeTab === 'venues' ? venues : ccas).map((item, index) => (
                            <tr key={item.id} className="hover:bg-white/5 transition-colors group">
                               <td className="px-8 py-6 text-xs font-bold text-gray-500">{index + 1}</td>
-                              <td className="px-8 py-6 text-xs font-black uppercase text-red-500">{item.region || 'MANILA'}</td>
+                              <td className="px-8 py-6 text-xs font-black uppercase text-red-500">{item.region || (activeTab === 'ccas' ? 'UNASSIGNED' : 'MANILA')}</td>
                               <td className="px-8 py-6">
                                  <div className="flex items-center gap-4">
                                     {item.image && <img src={item.image} className="size-10 rounded-lg object-cover border border-white/10" />}
@@ -843,12 +843,12 @@ const SuperPartners: React.FC = () => {
 
                                  <div className="space-y-3">
                                     <label className="text-[10px] font-black text-red-500 uppercase tracking-widest ml-1">MBTI Profile</label>
-                                    <input type="text" placeholder="ESTP" value={editForm.mbti || ''} onChange={e => setEditForm({ ...editForm, mbti: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-red-600" />
+                                    <input type="text" placeholder="예: ENFP" value={editForm.mbti || ''} onChange={e => setEditForm({ ...editForm, mbti: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-red-600" />
                                  </div>
 
                                  <div className="space-y-3">
                                     <label className="text-[10px] font-black text-red-500 uppercase tracking-widest ml-1">Quick Bio</label>
-                                    <textarea value={editForm.oneLineStory || ''} onChange={e => setEditForm({ ...editForm, oneLineStory: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-red-600 h-32 resize-none" placeholder="Nice to meet you hay..." />
+                                    <textarea value={editForm.oneLineStory || ''} onChange={e => setEditForm({ ...editForm, oneLineStory: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold outline-none focus:border-red-600 h-32 resize-none" placeholder="자기소개를 입력해 주세요..." />
                                  </div>
 
                                  <div className="space-y-4">
@@ -908,7 +908,7 @@ const SuperPartners: React.FC = () => {
                                     </div>
                                     <div className="space-y-3">
                                        <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Birthday (DD. MMM. YYYY.)</label>
-                                       <input type="text" value={editForm.birthday || ''} onChange={e => setEditForm({ ...editForm, birthday: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold" placeholder="23. Jan. 2000." />
+                                       <input type="text" value={editForm.birthday || ''} onChange={e => setEditForm({ ...editForm, birthday: e.target.value })} className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white font-bold" placeholder="예: 23. Jan. 2000." />
                                     </div>
                                     <div className="space-y-3 md:col-span-2">
                                        <label className="text-[10px] font-black text-gray-500 uppercase ml-2">Residential Address</label>

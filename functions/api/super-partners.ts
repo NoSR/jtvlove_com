@@ -26,7 +26,7 @@ export const onRequest: any = async (context: any) => {
             if (action === "listCCAs") {
                 const today = new Date().toISOString().split('T')[0];
                 const query = `
-          SELECT c.*, v.name as venue_name,
+          SELECT c.*, v.name as venue_name, v.region as region,
           (SELECT COUNT(*) FROM reservations r WHERE r.cca_id = c.id AND r.reservation_date = ?) as today_reservations
           FROM ccas c
           LEFT JOIN venues v ON c.venue_id = v.id
