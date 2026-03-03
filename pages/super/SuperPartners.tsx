@@ -228,12 +228,12 @@ const SuperPartners: React.FC = () => {
                ? await apiService.createCCA(ccaData)
                : await apiService.updateCCA(ccaData);
 
-            if (result) {
+            if (result.success) {
                alert(`CCA profile ${isCreateMode ? 'created' : 'synchronized'} successfully`);
                setShowDetailModal(false);
                loadData();
             } else {
-               alert("Failed to synchronize CCA master data.");
+               alert(`Failed to synchronize CCA master data: ${result.error || 'Please check the connection.'}`);
             }
          }
       } catch (err: any) {

@@ -212,7 +212,7 @@ export const apiService = {
     }
   },
 
-  async updateCCA(data: any): Promise<boolean> {
+  async updateCCA(data: any): Promise<{ success: boolean; error?: string }> {
     try {
       const id = data.id || '';
       const response = await fetch(`${API_BASE}/ccas/${id}`, {
@@ -220,24 +220,28 @@ export const apiService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      return response.ok;
-    } catch (error) {
+      if (response.ok) return { success: true };
+      const errData = await response.json().catch(() => ({}));
+      return { success: false, error: errData.error || 'Update failed' };
+    } catch (error: any) {
       console.error('updateCCA error:', error);
-      return false;
+      return { success: false, error: error.message };
     }
   },
 
-  async createCCA(data: any): Promise<boolean> {
+  async createCCA(data: any): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       const response = await fetch(`${API_BASE}/ccas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      return response.ok;
-    } catch (error) {
+      const result = await response.json().catch(() => ({}));
+      if (response.ok) return { success: true, id: result.id };
+      return { success: false, error: result.error || 'Create failed' };
+    } catch (error: any) {
       console.error('createCCA error:', error);
-      return false;
+      return { success: false, error: error.message };
     }
   },
 

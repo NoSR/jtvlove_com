@@ -103,14 +103,41 @@ export const onRequest: PagesFunction<Env> = async (context: any) => {
     try {
       const body = await request.json();
       const {
-        id: bodyId, name, nickname, realNameFirst, realNameMiddle, realNameLast,
-        birthday, address, phone, mbti, zodiac, oneLineStory, sns, experienceHistory,
-        maritalStatus, childrenStatus, specialNotes, password,
-        image, venueId, languages, isNew, weight, drinking, smoking, pets, specialties,
+        id: bodyId, name, nickname,
+        realNameFirst, real_name_first,
+        realNameMiddle, real_name_middle,
+        realNameLast, real_name_last,
+        birthday, address, phone, mbti, zodiac,
+        oneLineStory, one_line_story,
+        sns, sns_links,
+        experienceHistory, experience_history,
+        maritalStatus, marital_status,
+        childrenStatus, children_status,
+        specialNotes, special_notes,
+        password,
+        image,
+        venueId, venue_id,
+        languages, isNew, is_new, weight, drinking, smoking, pets, specialties,
         status, grade
       } = body;
 
       const targetId = id || bodyId || `cca_${Date.now()}`;
+
+      // Fallback logic
+      const f_realNameFirst = realNameFirst || real_name_first || '';
+      const f_realNameMiddle = realNameMiddle || real_name_middle || '';
+      const f_realNameLast = realNameLast || real_name_last || '';
+      const f_oneLineStory = oneLineStory || one_line_story || '';
+      const f_sns = sns || sns_links || {};
+      const f_experienceHistory = experienceHistory || experience_history || [];
+      const f_maritalStatus = maritalStatus || marital_status || 'SINGLE';
+      const f_childrenStatus = childrenStatus || children_status || 'NONE';
+      const f_specialNotes = specialNotes || special_notes || '';
+      const f_venueId = venueId || venue_id || 'v1';
+      const f_isNew = (isNew !== undefined ? isNew : (is_new !== undefined ? is_new : false));
+      const f_languages = languages || [];
+      const f_specialties = specialties || [];
+      const f_name = nickname || name || '';
 
       if (!id && !bodyId) {
         // CREATE
@@ -125,30 +152,30 @@ export const onRequest: PagesFunction<Env> = async (context: any) => {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           targetId,
-          nickname || name || '',
+          f_name,
           nickname || '',
-          realNameFirst || '',
-          realNameMiddle || '',
-          realNameLast || '',
+          f_realNameFirst,
+          f_realNameMiddle,
+          f_realNameLast,
           birthday || '',
           address || '',
           phone || '',
-          venueId || 'v1',
+          f_venueId,
           image || '',
           status || 'active',
           grade || 'PRO',
           password || '1234',
-          maritalStatus || 'SINGLE',
-          childrenStatus || 'NONE',
-          specialNotes || '',
-          JSON.stringify(experienceHistory || []),
-          JSON.stringify(languages || []),
-          JSON.stringify(specialties || []),
+          f_maritalStatus,
+          f_childrenStatus,
+          f_specialNotes,
+          JSON.stringify(f_experienceHistory),
+          JSON.stringify(f_languages),
+          JSON.stringify(f_specialties),
           mbti || '',
           zodiac || '',
-          oneLineStory || '',
-          JSON.stringify(sns || {}),
-          isNew ? 1 : 0,
+          f_oneLineStory,
+          JSON.stringify(f_sns),
+          f_isNew ? 1 : 0,
           weight || '',
           drinking || '',
           smoking || '',
@@ -162,34 +189,34 @@ export const onRequest: PagesFunction<Env> = async (context: any) => {
         // UPDATE
         const updateId = id || bodyId;
         const paramsList = [
-          name ? String(name) : (nickname ? String(nickname) : null),
-          nickname ? String(nickname) : null,
-          realNameFirst !== undefined ? String(realNameFirst) : null,
-          realNameMiddle !== undefined ? String(realNameMiddle) : null,
-          realNameLast !== undefined ? String(realNameLast) : null,
-          birthday !== undefined ? String(birthday) : null,
-          address !== undefined ? String(address) : null,
-          phone !== undefined ? String(phone) : null,
-          mbti !== undefined ? String(mbti) : null,
-          zodiac !== undefined ? String(zodiac) : null,
-          oneLineStory !== undefined ? String(oneLineStory) : null,
-          sns !== undefined ? JSON.stringify(sns) : null,
-          experienceHistory !== undefined ? JSON.stringify(experienceHistory) : null,
-          maritalStatus !== undefined ? String(maritalStatus) : null,
-          childrenStatus !== undefined ? String(childrenStatus) : null,
-          specialNotes !== undefined ? String(specialNotes) : null,
-          image !== undefined ? String(image) : null,
-          venueId !== undefined ? String(venueId) : null,
-          password !== undefined ? String(password) : null,
-          languages !== undefined ? JSON.stringify(languages) : null,
-          isNew !== undefined ? (isNew ? 1 : 0) : null,
-          weight !== undefined ? String(weight) : null,
-          drinking !== undefined ? String(drinking) : null,
-          smoking !== undefined ? String(smoking) : null,
-          pets !== undefined ? String(pets) : null,
-          specialties !== undefined ? JSON.stringify(specialties) : null,
-          status !== undefined ? String(status) : null,
-          grade !== undefined ? String(grade) : null,
+          f_name || null,
+          nickname || null,
+          f_realNameFirst || null,
+          f_realNameMiddle || null,
+          f_realNameLast || null,
+          birthday || null,
+          address || null,
+          phone || null,
+          mbti || null,
+          zodiac || null,
+          f_oneLineStory || null,
+          f_sns ? JSON.stringify(f_sns) : null,
+          f_experienceHistory ? JSON.stringify(f_experienceHistory) : null,
+          f_maritalStatus || null,
+          f_childrenStatus || null,
+          f_specialNotes || null,
+          image || null,
+          f_venueId || null,
+          password || null,
+          f_languages ? JSON.stringify(f_languages) : null,
+          f_isNew !== undefined ? (f_isNew ? 1 : 0) : null,
+          weight || null,
+          drinking || null,
+          smoking || null,
+          pets || null,
+          f_specialties ? JSON.stringify(f_specialties) : null,
+          status || null,
+          grade || null,
           String(updateId)
         ];
 
