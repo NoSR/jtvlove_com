@@ -14,14 +14,45 @@ export const onRequest: PagesFunction<Env> = async (context: any) => {
     }
 
     try {
-        const { email, password } = await request.json();
+        const { email, password, ccaId } = await request.json();
 
-        if (!email || !password) {
-            return new Response(JSON.stringify({ error: 'Email and password required' }), { status: 400 });
+        if (!password) {
+            return new Response(JSON.stringify({ error: 'Password required' }), { status: 400 });
+        }
+
+        // Handle CCA Login
+        if (ccaId) {
+            const cca = await env.DB.prepare('SELECT id, name, nickname, venue_id, image, grade FROM ccas WHERE id = ? AND password = ?').bind(ccaId, password).first();
+
+            if (!cca) {
+                return new Response(JSON.stringify({ error: 'Invalid password or CCA not found' }), { status: 401 });
+            }
+
+            // Return a CCA object mocked as a user profile
+            const user = {
+                id: cca.id,
+                email: cca.id + '@cca.local', // Dummy email for frontend compat
+                nickname: cca.nickname || cca.name,
+                role: 'cca',
+                real_name: cca.name,
+                profile_image: cca.image,
+                level: 1,
+                total_xp: 0,
+                points: 0
+            };
+
+            return new Response(JSON.stringify({ success: true, user, ccaId: cca.id, venueId: cca.venue_id }), {
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Standard User / Admin Login
+        if (!email) {
+            return new Response(JSON.stringify({ error: 'Email required' }), { status: 400 });
         }
 
         // In a real application, password should be hashed and verified!
-        const user = await env.DB.prepare('SELECT id, email, nickname, role, real_name, level, total_xp, points FROM users WHERE email = ? AND password = ?').bind(email, password).first();
+        const user = await env.DB.prepare('SELECT id, email, nickname, role, real_name, level, total_xp, points, profile_image FROM users WHERE email = ? AND password = ?').bind(email, password).first();
 
         if (!user) {
             return new Response(JSON.stringify({ error: 'Invalid email or password' }), { status: 401 });

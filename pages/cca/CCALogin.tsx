@@ -70,8 +70,8 @@ const CCALogin: React.FC = () => {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedCca || !selectedCca.email) {
-            setError('CCA 정보(이메일)가 누락되었습니다. 다시 시도해주세요.');
+        if (!selectedCca || !selectedCca.id) {
+            setError('CCA 정보가 누락되었습니다. 다시 시도해주세요.');
             return;
         }
 
@@ -79,8 +79,8 @@ const CCALogin: React.FC = () => {
         setError('');
 
         try {
-            // Internally use the selected CCA's email to login
-            const result = await apiService.login({ email: selectedCca.email, password });
+            // Using the new CCA auth route support in backend
+            const result = await apiService.login({ ccaId: selectedCca.id, password });
 
             if (result.success && result.user) {
                 const userObj = typeof result.user === 'string' ? JSON.parse(result.user) : result.user;

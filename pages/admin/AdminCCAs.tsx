@@ -89,7 +89,8 @@ const AdminCCAs: React.FC = () => {
 
       const formattedBirthday = `${birthDay}. ${birthMonth}. ${birthYear}.`;
 
-      const success = await apiService.updateCCA({
+      const result = await apiService.createCCA({
+         name: nickname, // createCCA might need 'name'. We use nickname as a fallback.
          nickname,
          realNameFirst: firstName,
          realNameMiddle: middleName,
@@ -102,10 +103,11 @@ const AdminCCAs: React.FC = () => {
          childrenStatus,
          specialNotes,
          status: confirmImmediately ? 'active' : 'applicant',
-         venueId: user?.venueId || ''
+         venueId: user?.venueId || '',
+         venueName: user?.nickname || '' // Or whatever string makes sense for venueName
       });
 
-      if (success) {
+      if (result.success) {
          alert(confirmImmediately ? 'Staff registered and hired successfully!' : 'Staff registered as applicant.');
          setShowRegisterModal(false);
          setRegForm({
@@ -116,23 +118,29 @@ const AdminCCAs: React.FC = () => {
          });
          fetchCCAs();
       } else {
-         alert('Registration failed.');
+         alert(`Registration failed: ${result.error || 'Unknown error'}`);
       }
    };
 
    const handleHireApplicant = async (ccaId: string) => {
-      const success = await apiService.updateCCA({ id: ccaId, status: 'active' });
-      if (success) {
+      const result = await apiService.updateCCA({ id: ccaId, status: 'active' });
+      if (result.success) {
          alert('Staff hired successfully!');
          fetchCCAs();
+      } else {
+         alert(`Hiring failed: ${result.error || 'Unknown error'}`);
       }
    };
 
    const handleDeclineApplicant = async (ccaId: string) => {
       if (confirm('Are you sure you want to decline this applicant?')) {
          // For now we just mark as dismissed or delete, but status 'declined' is also fine
-         await apiService.updateCCA({ id: ccaId, status: 'inactive' });
-         fetchCCAs();
+         const result = await apiService.updateCCA({ id: ccaId, status: 'inactive' });
+         if (result.success) {
+            fetchCCAs();
+         } else {
+            alert(`Declining failed: ${result.error || 'Unknown error'}`);
+         }
       }
    };
 
