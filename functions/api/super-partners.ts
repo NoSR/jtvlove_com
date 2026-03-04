@@ -11,6 +11,100 @@ export const onRequest: any = async (context: any) => {
 
     if (request.method === "GET") {
         try {
+            // 1. Ensure essential tables exist (D1 initialization safety)
+            try {
+                await env.DB.prepare(`
+                    CREATE TABLE IF NOT EXISTS venues (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        region TEXT NOT NULL,
+                        rating REAL DEFAULT 0,
+                        reviews_count INTEGER DEFAULT 0,
+                        description TEXT,
+                        image TEXT,
+                        banner_image TEXT,
+                        phone TEXT,
+                        address TEXT,
+                        introduction TEXT,
+                        tags TEXT,
+                        features TEXT,
+                        sns TEXT,
+                        operating_hours TEXT,
+                        showUpTime TEXT,
+                        media TEXT,
+                        menu TEXT,
+                        tables TEXT,
+                        rooms TEXT,
+                        owner_id TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );
+                `).run();
+
+                await env.DB.prepare(`
+                    CREATE TABLE IF NOT EXISTS reservations (
+                        id TEXT PRIMARY KEY,
+                        venue_id TEXT,
+                        cca_id TEXT,
+                        cca_ids TEXT,
+                        customer_name TEXT NOT NULL,
+                        customer_contact TEXT,
+                        reservation_time TEXT,
+                        reservation_date TEXT,
+                        customer_note TEXT,
+                        group_size INTEGER DEFAULT 1,
+                        table_id TEXT,
+                        room_id TEXT,
+                        status TEXT DEFAULT 'pending',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );
+                `).run();
+
+                await env.DB.prepare(`
+                    CREATE TABLE IF NOT EXISTS ccas (
+                        id TEXT PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        nickname TEXT,
+                        real_name_first TEXT,
+                        real_name_middle TEXT,
+                        real_name_last TEXT,
+                        birthday TEXT,
+                        address TEXT,
+                        phone TEXT,
+                        venue_id TEXT NOT NULL,
+                        rating REAL DEFAULT 0,
+                        image TEXT,
+                        experience TEXT,
+                        languages TEXT,
+                        height TEXT,
+                        description TEXT,
+                        status TEXT DEFAULT 'active',
+                        grade TEXT DEFAULT 'PRO',
+                        points INTEGER DEFAULT 0,
+                        mbti TEXT,
+                        zodiac TEXT,
+                        one_line_story TEXT,
+                        sns_links TEXT,
+                        experience_history TEXT,
+                        marital_status TEXT,
+                        children_status TEXT,
+                        special_notes TEXT,
+                        views_count INTEGER DEFAULT 0,
+                        likes_count INTEGER DEFAULT 0,
+                        posts_count INTEGER DEFAULT 0,
+                        is_new INTEGER DEFAULT 0,
+                        weight TEXT,
+                        drinking TEXT,
+                        smoking TEXT,
+                        pets TEXT,
+                        specialties TEXT,
+                        password TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );
+                `).run();
+            } catch (e) {
+                console.error("D1 table creation error:", e);
+            }
+
             if (action === "listVenues") {
                 const today = new Date().toISOString().split('T')[0];
                 const query = `
