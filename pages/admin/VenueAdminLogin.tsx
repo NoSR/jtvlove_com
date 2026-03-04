@@ -20,13 +20,19 @@ const VenueAdminLogin: React.FC = () => {
         try {
             const result = await apiService.login({ email, password });
             if (result.success && result.user) {
-                const userData = typeof result.user === 'string' ? JSON.parse(result.user) : result.user;
+                const userObj = typeof result.user === 'string' ? JSON.parse(result.user) : result.user;
 
-                if (userData.role !== 'venue_admin') {
+                if (userObj.role !== 'venue_admin') {
                     setError('업소 관리자 계정이 아닙니다.');
                     setIsLoading(false);
                     return;
                 }
+
+                // Merge venueId into the user object for the session
+                const userData = {
+                    ...userObj,
+                    venueId: result.venueId
+                };
 
                 login(userData);
                 navigate('/admin');
