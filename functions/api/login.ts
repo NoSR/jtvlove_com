@@ -45,8 +45,8 @@ export const onRequest: PagesFunction<Env> = async (context: any) => {
             if (isSuperAdmin) {
                 const superAdminCount = await env.DB.prepare("SELECT COUNT(*) as count FROM users WHERE role = 'super_admin'").first('count');
                 if (superAdminCount === 0) {
-                    // Create initial super admin with default password '12345678' if not present
-                    await env.DB.prepare("INSERT INTO users (id, email, password, nickname, real_name, role) VALUES ('super', 'admin@jtvlove.com', '12345678', 'SuperAdmin', 'Super Admin', 'super_admin')").run();
+                    // Create initial super admin with default password '000000' if not present
+                    await env.DB.prepare("INSERT INTO users (id, email, password, nickname, real_name, role) VALUES ('super', 'admin@jtvlove.com', '000000', 'SuperAdmin', 'Super Admin', 'super_admin')").run();
                 }
             }
         } catch (e: any) {
