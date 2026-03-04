@@ -15,7 +15,8 @@ export const onRequest: PagesFunction<Env> = async (context: any) => {
 
     try {
         const body = await request.json();
-        const { email, password, nickname, realName, phone, venueName, region } = body;
+        const { email, password, nickname, realName, phone, venueName, region, location } = body;
+        const finalRegion = region || location || 'Manila';
 
         if (!email || !password || !venueName) {
             return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
@@ -90,7 +91,7 @@ export const onRequest: PagesFunction<Env> = async (context: any) => {
             env.DB.prepare(`
                 INSERT INTO venues (id, name, region, rating, reviews_count, owner_id, introduction)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).bind(venueId, venueName, region || 'Manila', 0, 0, userId, `${venueName}에 오신 것을 환영합니다.`)
+            `).bind(venueId, venueName, finalRegion, 0, 0, userId, `${venueName}에 오신 것을 환영합니다.`)
         ]);
 
         return new Response(JSON.stringify({
