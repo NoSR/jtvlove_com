@@ -39,24 +39,25 @@ const AdminReservations: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
+      const venueId = 'v1'; // Should be dynamic in future
       const [vData, cData] = await Promise.all([
-        apiService.getVenueById('v1'),
-        apiService.getCCAs()
+        apiService.getVenueById(venueId),
+        apiService.getCCAs(venueId)
       ]);
 
       if (vData) setVenue(vData);
       if (cData && Array.isArray(cData) && cData.length > 0) setAllCCAs(cData);
 
-      // Attempt to load reservations from API
+      // Fetch venue-wide reservations
       try {
-        const resData = await apiService.getCCAReservations('c1');
+        const resData = await apiService.getVenueReservations(venueId);
         if (resData && Array.isArray(resData)) {
           const now = new Date();
           const formatted = resData.map((r: any) => {
             let status = r.status || 'pending';
             const resDate = getSlotDateTime(r.reservation_date, r.reservation_time);
 
-            // Auto transitions (Only if not already in terminal status)
+            // Auto transitions
             if (status === 'pending' && now > resDate) {
               status = 'missed';
             } else if (status === 'confirmed' && now.getTime() > resDate.getTime() + 3600000) {
@@ -64,15 +65,15 @@ const AdminReservations: React.FC = () => {
             }
 
             return {
-              id: r.id || `res-${Math.random()}`,
-              venueId: r.venue_id || 'v1',
+              id: r.id,
+              venueId: r.venue_id,
               ccaId: r.cca_id,
-              ccaIds: r.ccaIds || [],
-              customerName: r.customer_name || 'Guest',
+              ccaIds: r.cca_ids ? (typeof r.cca_ids === 'string' ? JSON.parse(r.cca_ids) : r.cca_ids) : [],
+              customerName: r.customer_name,
               customerContact: r.customer_contact || '',
               customerNote: r.customer_note || '',
               groupSize: r.group_size || 1,
-              time: r.reservation_time || '19:00',
+              time: r.reservation_time,
               date: r.reservation_date,
               status: status,
               tableId: r.table_id || '',
@@ -83,7 +84,7 @@ const AdminReservations: React.FC = () => {
           setReservations(formatted);
         }
       } catch (resErr) {
-        console.warn("Failed to fetch live reservations, staying with mock data.", resErr);
+        console.warn("Failed to fetch live reservations", resErr);
       }
 
     } catch (err) {
@@ -139,11 +140,10 @@ const AdminReservations: React.FC = () => {
   };
 
   const getSlotDateTime = (dateStr: string, slotTime: string) => {
+    if (!slotTime) return new Date();
     const [h, m] = slotTime.split(':').map(Number);
     const d = new Date(dateStr);
     d.setHours(h, m, 0, 0);
-    // If hour is early morning (0-6), it likely belongs to the "business night" of the previous day
-    // But since selectedDate is already the date, we just need to handle the wrap for comparison
     if (h < 10) d.setDate(d.getDate() + 1);
     return d;
   };
@@ -200,38 +200,21 @@ const AdminReservations: React.FC = () => {
       const apiData = {
         venueId: 'v1',
         ccaIds: newRes.ccaIds || [],
-        customer_name: newRes.customerName as string,
-        customer_contact: newRes.customerContact || '',
-        customer_note: newRes.customerNote || '',
-        reservation_date: selectedDate,
-        reservation_time: newRes.time as string || '19:00',
-        group_size: newRes.groupSize || 1,
-        table_id: newRes.tableId,
-        room_id: newRes.roomId,
+        customerName: newRes.customerName as string,
+        customerContact: newRes.customerContact || '',
+        customerNote: newRes.customerNote || '',
+        date: selectedDate,
+        time: newRes.time as string || '19:00',
+        groupSize: newRes.groupSize || 1,
+        tableId: newRes.tableId,
+        roomId: newRes.roomId,
         status: 'confirmed'
       };
 
-      const success = await apiService.createCCAReservation(apiData);
+      const success = await apiService.createReservation(apiData);
 
       if (success) {
-        const localRes: Reservation = {
-          id: `res-${Date.now()}`,
-          venueId: 'v1',
-          date: selectedDate,
-          customerName: newRes.customerName as string,
-          customerNote: newRes.customerNote || '',
-          groupSize: newRes.groupSize || 1,
-          time: newRes.time as string || '19:00',
-          status: 'confirmed',
-          ccaIds: newRes.ccaIds || [],
-          tableId: newRes.tableId,
-          roomId: newRes.roomId,
-          tableName: ensureArray(venue?.tables).find((t: any) => t.id === newRes.tableId)?.name,
-          roomName: ensureArray(venue?.rooms).find((r: any) => r.id === newRes.roomId)?.name,
-          shortMessage: `${newRes.customerName} + ${Math.max(0, (newRes.groupSize || 1) - 1)}`
-        };
-
-        setReservations(prev => [...prev, localRes]);
+        loadData(); // Refresh list
         setShowCreatePopup(false);
         setNewRes({
           time: '19:00',
@@ -245,7 +228,7 @@ const AdminReservations: React.FC = () => {
           roomId: ''
         });
       } else {
-        alert("서버 오류: 예약 생성에 실패했습니다. DB 스키마 업데이트가 필요할 수 있습니다.");
+        alert("예약 생성에 실패했습니다.");
       }
     } catch (err) {
       console.error("Error creating reservation:", err);
@@ -255,7 +238,7 @@ const AdminReservations: React.FC = () => {
 
   const handleUpdateStatus = async (id: string, status: any) => {
     try {
-      const success = await apiService.updateCCAReservationStatus(id, status);
+      const success = await apiService.updateReservationStatus(id, status);
       if (success) {
         setReservations(prev => prev.map(r => r.id === id ? { ...r, status } : r));
       } else {
@@ -274,9 +257,9 @@ const AdminReservations: React.FC = () => {
         room_id: res.roomId,
         group_size: res.groupSize,
         status: res.status,
-        ccaIds: res.ccaIds
+        cca_ids: res.ccaIds
       };
-      const success = await apiService.updateCCAReservation(res.id, updates);
+      const success = await apiService.updateReservation(res.id, updates);
       if (success) {
         alert("업데이트 되었습니다.");
         loadData();

@@ -421,14 +421,50 @@ export const apiService = {
     }
   },
 
-  // Create Reservation
+  // Reservations
   async createReservation(data: any): Promise<boolean> {
-    const response = await fetch(`${API_BASE}/reservations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return response.ok;
+    try {
+      const response = await fetch(`${API_BASE}/reservations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('createReservation error:', error);
+      return false;
+    }
+  },
+
+  async getVenueReservations(venueId: string, date?: string): Promise<any[]> {
+    try {
+      let url = `${API_BASE}/reservations?venueId=${encodeURIComponent(venueId)}`;
+      if (date) url += `&date=${encodeURIComponent(date)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch venue reservations');
+      return await response.json();
+    } catch (error) {
+      console.error('getVenueReservations error:', error);
+      return [];
+    }
+  },
+
+  async updateReservation(id: string, updates: any): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE}/reservations?id=${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('updateReservation error:', error);
+      return false;
+    }
+  },
+
+  async updateReservationStatus(id: string, status: string): Promise<boolean> {
+    return this.updateReservation(id, { status });
   },
 
   // Gallery
