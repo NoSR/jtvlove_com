@@ -7,6 +7,7 @@ interface User {
     realName?: string;
     role: string;
     venueId?: string;
+    ccaId?: string;
     level?: number;
     totalXp?: number;
     points?: number;

@@ -1,10 +1,11 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../../services/apiService';
-
-const CCA_ID = 'c1'; // 현재 로그인된 CCA ID (추후 인증 시스템 연동)
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const CCAPortalHome: React.FC = () => {
+   const { user } = useAuth();
+   const navigate = useNavigate();
    const [loading, setLoading] = useState(true);
    const [data, setData] = useState<any>(null);
    const [attendance, setAttendance] = useState<any>(null);
@@ -17,19 +18,26 @@ const CCAPortalHome: React.FC = () => {
    const [isReplying, setIsReplying] = useState(false);
 
    const fetchData = useCallback(async () => {
+      if (!user?.ccaId) return;
       setLoading(true);
-      const result = await apiService.getCCAPortalHome(CCA_ID);
+      const result = await apiService.getCCAPortalHome(user.ccaId);
       setData(result);
-      setAttendance(result.attendance);
+      setAttendance(result?.attendance);
       setLoading(false);
-   }, []);
+   }, [user?.ccaId]);
 
-   useEffect(() => { fetchData(); }, [fetchData]);
+   useEffect(() => {
+      if (!user || !user.ccaId) {
+         navigate('/cca-portal/login');
+         return;
+      }
+      fetchData();
+   }, [user, navigate, fetchData]);
 
    const handleCheckIn = async () => {
-      if (!data?.cca) return;
+      if (!data?.cca || !user?.ccaId) return;
       setCheckingIn(true);
-      const result = await apiService.ccaCheckIn(CCA_ID, data.cca.venue_id || 'v1');
+      const result = await apiService.ccaCheckIn(user.ccaId, data.cca.venue_id || 'v1');
       if (result.success) {
          setAttendance({ status: 'checked_in', check_in_at: result.time || new Date().toISOString() });
       }
@@ -37,9 +45,9 @@ const CCAPortalHome: React.FC = () => {
    };
 
    const handleCheckOut = async () => {
-      if (!data?.cca) return;
+      if (!data?.cca || !user?.ccaId) return;
       setCheckingOut(true);
-      const result = await apiService.ccaCheckOut(CCA_ID, data.cca.venue_id || 'v1');
+      const result = await apiService.ccaCheckOut(user.ccaId, data.cca.venue_id || 'v1');
       if (result.success) {
          setAttendance({ ...attendance, status: 'checked_out', check_out_at: result.time || new Date().toISOString() });
       }

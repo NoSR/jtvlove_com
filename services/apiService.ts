@@ -945,7 +945,7 @@ export const apiService = {
     }
   },
 
-  async login(data: any): Promise<{ success: boolean; user?: any; venueId?: string; error?: string }> {
+  async login(data: any): Promise<{ success: boolean; user?: any; venueId?: string; ccaId?: string; error?: string }> {
     try {
       const response = await fetch(`${API_BASE}/login`, {
         method: 'POST',

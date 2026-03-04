@@ -1,12 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
-import { RESERVATIONS } from '../../constants';
 import { Reservation } from '../../types';
 import { apiService } from '../../services/apiService';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const CCAMySchedule: React.FC = () => {
-  const [selectedDate, setSelectedDate] = useState('2023-11-20');
-  const [appointments, setAppointments] = useState<Reservation[]>(RESERVATIONS);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [appointments, setAppointments] = useState<Reservation[]>([]);
   const [dayOffDates, setDayOffDates] = useState<Set<string>>(new Set());
   const [soldOutDates, setSoldOutDates] = useState<Set<string>>(new Set());
 
@@ -18,19 +21,22 @@ const CCAMySchedule: React.FC = () => {
   const [selectedRes, setSelectedRes] = useState<Reservation | null>(null);
 
   // Holiday Modal Calendar State
-  const [viewDate, setViewDate] = useState(new Date(2023, 10, 1)); // Nov 2023
+  const [viewDate, setViewDate] = useState(new Date());
   const [isSyncingHolidays, setIsSyncingHolidays] = useState(false);
 
-  const currentCcaId = 'c1';
-
   useEffect(() => {
+    if (!user || !user.ccaId) {
+      navigate('/cca-portal/login');
+      return;
+    }
     loadHolidays();
     loadSoldOutDates();
     loadReservations();
-  }, []);
+  }, [user, navigate]);
 
   const loadReservations = async () => {
-    const results = await apiService.getCCAReservations(currentCcaId);
+    if (!user?.ccaId) return;
+    const results = await apiService.getCCAReservations(user.ccaId);
     // Transform API results to match Reservation type if needed
     const transformed = results.map((r: any) => ({
       ...r,
@@ -43,12 +49,14 @@ const CCAMySchedule: React.FC = () => {
   };
 
   const loadHolidays = async () => {
-    const dates = await apiService.getHolidays(currentCcaId);
+    if (!user?.ccaId) return;
+    const dates = await apiService.getHolidays(user.ccaId);
     setDayOffDates(new Set(dates));
   };
 
   const loadSoldOutDates = async () => {
-    const dates = await apiService.getSoldOutDates(currentCcaId);
+    if (!user?.ccaId) return;
+    const dates = await apiService.getSoldOutDates(user.ccaId);
     setSoldOutDates(new Set(dates));
   };
 
@@ -89,12 +97,15 @@ const CCAMySchedule: React.FC = () => {
     }
     setSoldOutDates(newSoldOut);
     // Auto-sync sold out status to DB
-    await apiService.syncSoldOutDates(currentCcaId, Array.from(newSoldOut));
+    if (user?.ccaId) {
+      await apiService.syncSoldOutDates(user.ccaId, Array.from(newSoldOut));
+    }
   };
 
   const handleSaveHolidays = async () => {
+    if (!user?.ccaId) return;
     setIsSyncingHolidays(true);
-    const success = await apiService.syncHolidays(currentCcaId, Array.from(dayOffDates));
+    const success = await apiService.syncHolidays(user.ccaId, Array.from(dayOffDates));
     if (success) {
       setShowDayOffModal(false);
     } else {
@@ -105,10 +116,11 @@ const CCAMySchedule: React.FC = () => {
 
   const handleAddAppointment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user?.ccaId) return;
     const formData = new FormData(e.currentTarget);
     const success = await apiService.createCCAReservation({
       venueId: 'v1',
-      ccaId: currentCcaId,
+      ccaId: user.ccaId,
       customer_name: formData.get('customerName') as string,
       reservation_date: selectedDate,
       reservation_time: formData.get('time') as string,

@@ -24,11 +24,14 @@ import AdminProfile from './pages/admin/AdminProfile';
 import AdminReservations from './pages/admin/AdminReservations';
 import AdminCCAs from './pages/admin/AdminCCAs';
 
+// CCA Portal
 import CCAPortalLayout from './pages/cca/CCAPortalLayout';
 import CCAPortalHome from './pages/cca/CCAPortalHome';
 import CCAMySchedule from './pages/cca/CCAMySchedule';
 import CCAGalleryManager from './pages/cca/CCAGalleryManager';
 import CCAProfileSettings from './pages/cca/CCAProfileSettings';
+import CCALogin from './pages/cca/CCALogin';
+import CCASelectorModal from './pages/cca/CCASelectorModal';
 
 // Super Admin Pages
 import SuperAdminLayout from './pages/super/SuperAdminLayout';
@@ -40,7 +43,7 @@ import SuperUsers from './pages/super/SuperUsers';
 import SuperHeroManager from './pages/super/SuperHeroManager';
 import SuperNotice from './pages/super/SuperNotice';
 
-// Venue Admin Auth
+// Venue Admin Auth & Selector
 import VenueAdminLogin from './pages/admin/VenueAdminLogin';
 import VenueAdminRegister from './pages/admin/VenueAdminRegister';
 import VenueSelectorModal from './pages/admin/VenueSelectorModal';
@@ -51,6 +54,7 @@ const Navigation = () => {
   const { user, logout, updateUser } = useAuth();
   const [boards, setBoards] = useState<any[]>([]);
   const [showVenueSelector, setShowVenueSelector] = useState(false);
+  const [showCCASelector, setShowCCASelector] = useState(false);
 
   const handleVenueSelect = (venueId: string) => {
     updateUser({ venueId });
@@ -58,10 +62,23 @@ const Navigation = () => {
     navigate('/admin');
   };
 
+  const handleCCASelect = (ccaId: string) => {
+    updateUser({ ccaId });
+    setShowCCASelector(false);
+    navigate('/cca-portal');
+  };
+
   const handleOwnerClick = (e: React.MouseEvent) => {
     if (user?.role === 'super_admin') {
       e.preventDefault();
       setShowVenueSelector(true);
+    }
+  };
+
+  const handleCCAClick = (e: React.MouseEvent) => {
+    if (user?.role === 'super_admin') {
+      e.preventDefault();
+      setShowCCASelector(true);
     }
   };
 
@@ -164,7 +181,7 @@ const Navigation = () => {
             <Link to="/mypage" className={`text-sm font-bold transition-colors ${isActive('/mypage') ? 'text-primary' : 'hover:text-primary'}`}>마이페이지</Link>
             <div className="flex gap-2">
               <Link to="/admin/login" onClick={handleOwnerClick} className="text-[10px] font-black bg-zinc-100 dark:bg-white/5 px-3 py-1 rounded-full uppercase">업주용</Link>
-              <Link to="/cca-portal" className="text-[10px] font-black bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-tighter">CCA 전용</Link>
+              <Link to="/cca-portal/login" onClick={handleCCAClick} className="text-[10px] font-black bg-primary/10 text-primary px-3 py-1 rounded-full uppercase tracking-tighter">CCA 전용</Link>
               <Link to="/super-admin" className="text-[10px] font-black bg-red-500/10 text-red-600 px-3 py-1 rounded-full uppercase">관리자</Link>
             </div>
 
@@ -232,6 +249,11 @@ const Navigation = () => {
         onClose={() => setShowVenueSelector(false)}
         onSelect={handleVenueSelect}
       />
+      <CCASelectorModal
+        isOpen={showCCASelector}
+        onClose={() => setShowCCASelector(false)}
+        onSelect={handleCCASelect}
+      />
     </>
   );
 };
@@ -272,6 +294,9 @@ const App: React.FC = () => {
 
           {/* Admin Routes */}
           <Route path="/admin/*" element={<AdminLayoutRoutes />} />
+
+          {/* CCA Portal Auth */}
+          <Route path="/cca-portal/login" element={<CCALogin />} />
 
           {/* CCA Portal Routes */}
           <Route path="/cca-portal/*" element={<CCAPortalLayout><CCAPortalRoutes /></CCAPortalLayout>} />

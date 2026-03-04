@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { apiService } from '../../services/apiService';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { CCA, Venue, CCAExperience, MediaItem } from '../../types';
 
 const MBTI_LIST = [
@@ -38,23 +40,30 @@ const CCAProfileSettings: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [galleryItems, setGalleryItems] = useState<MediaItem[]>([]);
-  
+
   // Form State
   const [formData, setFormData] = useState<Partial<CCA>>({});
 
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
+    if (!user || !user.ccaId) {
+      navigate('/cca-portal/login');
+      return;
+    }
+
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        // For demo/preview, we use 'c1' as the current CCA ID
-        const currentCcaId = 'c1'; 
+        const currentCcaId = user.ccaId!;
         const [ccaData, venuesData, galleryData] = await Promise.all([
           apiService.getCCAs().then(list => list.find(c => c.id === currentCcaId) || null),
           apiService.getVenues(),
           apiService.getGallery(currentCcaId)
         ]);
-        
+
         if (ccaData) {
           setCca(ccaData);
           setFormData(ccaData);
@@ -71,7 +80,7 @@ const CCAProfileSettings: React.FC = () => {
       }
     };
     loadData();
-  }, []);
+  }, [user, navigate]);
 
   const calculateZodiac = (birthday: string) => {
     if (!birthday) return '';
@@ -79,7 +88,7 @@ const CCAProfileSettings: React.FC = () => {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const mmdd = `${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    
+
     const sign = ZODIAC_SIGNS.find(s => {
       if (s.start <= s.end) {
         return mmdd >= s.start && mmdd <= s.end;
@@ -175,7 +184,7 @@ const CCAProfileSettings: React.FC = () => {
     try {
       const updateData = { ...formData };
       if (newPassword) (updateData as any).password = newPassword;
-      
+
       const result = await apiService.updateCCAProfile(cca.id, updateData);
       if (result.success) {
         setCca({ ...cca, ...formData });
@@ -210,7 +219,7 @@ const CCAProfileSettings: React.FC = () => {
           <h3 className="text-xl font-black uppercase">Data Load Error</h3>
           <p className="text-sm text-gray-500 font-medium">{error}</p>
         </div>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="px-8 py-3 bg-primary text-[#1b180d] rounded-2xl text-xs font-black uppercase tracking-widest"
         >
@@ -232,7 +241,7 @@ const CCAProfileSettings: React.FC = () => {
       {/* Profile Header */}
       <section className="bg-white dark:bg-zinc-900 rounded-[3rem] p-8 md:p-12 border border-primary/5 shadow-xl flex flex-col md:flex-row items-center gap-10 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10">
-           <span className="material-symbols-outlined text-8xl">verified_user</span>
+          <span className="material-symbols-outlined text-8xl">verified_user</span>
         </div>
 
         <div className="relative group">
@@ -256,9 +265,9 @@ const CCAProfileSettings: React.FC = () => {
                 <div className="flex flex-col gap-2 w-full md:w-auto">
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Display Name (Nickname)</label>
-                    <input 
-                      type="text" 
-                      value={formData.nickname || ''} 
+                    <input
+                      type="text"
+                      value={formData.nickname || ''}
                       onChange={(e) => handleInputChange('nickname', e.target.value)}
                       placeholder="Enter Nickname"
                       className="text-2xl font-black bg-gray-100 dark:bg-white/5 border-none rounded-xl px-4 py-2 w-full focus:ring-2 ring-primary/20"
@@ -266,9 +275,9 @@ const CCAProfileSettings: React.FC = () => {
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Public Name</label>
-                    <input 
-                      type="text" 
-                      value={formData.name || ''} 
+                    <input
+                      type="text"
+                      value={formData.name || ''}
                       onChange={(e) => handleInputChange('name', e.target.value)}
                       placeholder="Enter Public Name"
                       className="text-lg font-bold bg-gray-100 dark:bg-white/5 border-none rounded-xl px-4 py-1 w-full focus:ring-2 ring-primary/20"
@@ -279,13 +288,13 @@ const CCAProfileSettings: React.FC = () => {
                 <h2 className="text-4xl font-black tracking-tight">{cca.nickname || cca.name}</h2>
               )}
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => isEditMode ? handleSave() : setIsEditMode(true)}
                   className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isEditMode ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'bg-primary text-[#1b180d] shadow-lg shadow-primary/20 hover:scale-105'}`}
                 >
                   {isSaving ? 'Saving...' : (isEditMode ? 'Edit Profile' : 'Edit Profile')}
                 </button>
-                <button 
+                <button
                   onClick={() => setShowPreview(true)}
                   className="px-6 py-2.5 bg-white dark:bg-zinc-800 border border-primary/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 transition-all"
                 >
@@ -293,12 +302,12 @@ const CCAProfileSettings: React.FC = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest">
               <span>{cca.venueName}</span>
               <span>•</span>
               <span>
-                {cca.experienceHistory && cca.experienceHistory.length > 0 
+                {cca.experienceHistory && cca.experienceHistory.length > 0
                   ? `${formatDate(cca.experienceHistory[0].joinDate)} [${calculateDays(cca.experienceHistory[0].joinDate)} days]`
                   : 'No Join Date'}
               </span>
@@ -338,7 +347,7 @@ const CCAProfileSettings: React.FC = () => {
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">MBTI</label>
-                <button 
+                <button
                   disabled={!isEditMode}
                   onClick={() => setShowMbtiPopup(true)}
                   className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-2xl p-4 font-bold text-sm text-left flex items-center justify-between group"
@@ -350,7 +359,7 @@ const CCAProfileSettings: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">One-Line Story</label>
-                <textarea 
+                <textarea
                   disabled={!isEditMode}
                   value={formData.oneLineStory || ''}
                   onChange={(e) => handleInputChange('oneLineStory', e.target.value)}
@@ -384,7 +393,7 @@ const CCAProfileSettings: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Drinking</label>
-                <select 
+                <select
                   disabled={!isEditMode}
                   value={formData.drinking || ''}
                   onChange={(e) => handleInputChange('drinking', e.target.value)}
@@ -399,7 +408,7 @@ const CCAProfileSettings: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Smoking</label>
-                <select 
+                <select
                   disabled={!isEditMode}
                   value={formData.smoking || ''}
                   onChange={(e) => handleInputChange('smoking', e.target.value)}
@@ -414,7 +423,7 @@ const CCAProfileSettings: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Like Pets</label>
-                <select 
+                <select
                   disabled={!isEditMode}
                   value={formData.pets || ''}
                   onChange={(e) => handleInputChange('pets', e.target.value)}
@@ -449,8 +458,8 @@ const CCAProfileSettings: React.FC = () => {
               ].map(social => (
                 <div key={social.id} className="flex flex-col gap-2 bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-transparent focus-within:border-primary/20 transition-all">
                   <p className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{social.label}</p>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     disabled={!isEditMode}
                     value={(formData.sns as any)?.[social.id] || ''}
                     onChange={(e) => handleInputChange(`sns.${social.id}`, e.target.value)}
@@ -481,24 +490,24 @@ const CCAProfileSettings: React.FC = () => {
               <div className="md:col-span-2 space-y-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Real Name (Confidential)</label>
                 <div className="grid grid-cols-3 gap-4">
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     disabled={!isEditMode}
                     value={formData.realNameFirst || ''}
                     onChange={(e) => handleInputChange('realNameFirst', e.target.value)}
                     placeholder="First Name"
                     className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-2xl p-4 font-bold text-sm"
                   />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     disabled={!isEditMode}
                     value={formData.realNameMiddle || ''}
                     onChange={(e) => handleInputChange('realNameMiddle', e.target.value)}
                     placeholder="Middle Name"
                     className="w-full bg-gray-50 dark:bg-white/5 border-none rounded-2xl p-4 font-bold text-sm"
                   />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     disabled={!isEditMode}
                     value={formData.realNameLast || ''}
                     onChange={(e) => handleInputChange('realNameLast', e.target.value)}
@@ -512,7 +521,7 @@ const CCAProfileSettings: React.FC = () => {
               <div className="md:col-span-2 space-y-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Date of Birth</label>
                 <div className="grid grid-cols-3 gap-4">
-                  <select 
+                  <select
                     disabled={!isEditMode}
                     value={bDay}
                     onChange={(e) => {
@@ -526,7 +535,7 @@ const CCAProfileSettings: React.FC = () => {
                       <option key={d} value={d}>{d.toString().padStart(2, '0')}</option>
                     ))}
                   </select>
-                  <select 
+                  <select
                     disabled={!isEditMode}
                     value={bMonth}
                     onChange={(e) => {
@@ -540,7 +549,7 @@ const CCAProfileSettings: React.FC = () => {
                       <option key={m} value={i}>{m}</option>
                     ))}
                   </select>
-                  <select 
+                  <select
                     disabled={!isEditMode}
                     value={bYear}
                     onChange={(e) => {
@@ -563,8 +572,8 @@ const CCAProfileSettings: React.FC = () => {
               {/* Address & Phone */}
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Residential Address</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   disabled={!isEditMode}
                   value={formData.address || ''}
                   onChange={(e) => handleInputChange('address', e.target.value)}
@@ -574,8 +583,8 @@ const CCAProfileSettings: React.FC = () => {
               </div>
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Phone Number</label>
-                <input 
-                  type="tel" 
+                <input
+                  type="tel"
                   disabled={!isEditMode}
                   value={formData.phone || ''}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
@@ -598,7 +607,7 @@ const CCAProfileSettings: React.FC = () => {
                     </div>
                   </div>
                   {isEditMode && (
-                    <select 
+                    <select
                       value={formData.venueId}
                       onChange={(e) => handleInputChange('venueId', e.target.value)}
                       className="bg-white dark:bg-zinc-800 border-none rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest shadow-sm"
@@ -621,7 +630,7 @@ const CCAProfileSettings: React.FC = () => {
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Marital Status</label>
                 <div className="flex gap-4">
                   {['Single', 'Married', 'Separated'].map(opt => (
-                    <button 
+                    <button
                       key={opt}
                       disabled={!isEditMode}
                       onClick={() => handleInputChange('maritalStatus', opt)}
@@ -636,7 +645,7 @@ const CCAProfileSettings: React.FC = () => {
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Children</label>
                 <div className="flex gap-4">
                   {['None', '1', '2', '3+'].map(opt => (
-                    <button 
+                    <button
                       key={opt}
                       disabled={!isEditMode}
                       onClick={() => handleInputChange('childrenStatus', opt)}
@@ -655,13 +664,13 @@ const CCAProfileSettings: React.FC = () => {
                   {['ENGLISH', 'KOREAN', 'JAPANESE', 'CHINESE', 'ETC'].map(lang => {
                     const isSelected = (formData.languages || []).includes(lang);
                     return (
-                      <button 
+                      <button
                         key={lang}
                         type="button"
                         disabled={!isEditMode}
                         onClick={() => {
                           const current = formData.languages || [];
-                          const next = isSelected 
+                          const next = isSelected
                             ? current.filter(l => l !== lang)
                             : [...current, lang];
                           handleInputChange('languages', next);
@@ -680,8 +689,8 @@ const CCAProfileSettings: React.FC = () => {
                 <div className="md:col-span-2 space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Change Password</label>
                   <div className="relative">
-                    <input 
-                      type="password" 
+                    <input
+                      type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter new password to change"
@@ -704,7 +713,7 @@ const CCAProfileSettings: React.FC = () => {
                 <h3 className="text-xl font-black tracking-tight">Work Experience (Resume)</h3>
               </div>
               {isEditMode && (
-                <button 
+                <button
                   onClick={handleAddExperience}
                   className="size-10 bg-primary text-[#1b180d] rounded-full flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-110 transition-all"
                 >
@@ -717,7 +726,7 @@ const CCAProfileSettings: React.FC = () => {
               {formData.experienceHistory?.map((exp, idx) => (
                 <div key={idx} className="bg-gray-50 dark:bg-white/5 p-6 rounded-[2rem] border border-transparent hover:border-primary/10 transition-all space-y-6 relative group">
                   {isEditMode && (
-                    <button 
+                    <button
                       onClick={() => {
                         const history = [...(formData.experienceHistory || [])];
                         history.splice(idx, 1);
@@ -728,12 +737,12 @@ const CCAProfileSettings: React.FC = () => {
                       <span className="material-symbols-outlined text-sm">delete</span>
                     </button>
                   )}
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-2">Join Date</label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         disabled={!isEditMode}
                         value={exp.joinDate}
                         onChange={(e) => handleUpdateExperience(idx, 'joinDate', e.target.value)}
@@ -742,8 +751,8 @@ const CCAProfileSettings: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-2">Leave Date</label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         disabled={!isEditMode}
                         value={exp.leaveDate}
                         onChange={(e) => handleUpdateExperience(idx, 'leaveDate', e.target.value)}
@@ -755,7 +764,7 @@ const CCAProfileSettings: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="md:col-span-1 space-y-2">
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-2">Venue Type</label>
-                      <select 
+                      <select
                         disabled={!isEditMode}
                         value={exp.venueType}
                         onChange={(e) => handleUpdateExperience(idx, 'venueType', e.target.value as any)}
@@ -768,8 +777,8 @@ const CCAProfileSettings: React.FC = () => {
                     </div>
                     <div className="md:col-span-1 space-y-2">
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-2">Venue Name</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         disabled={!isEditMode}
                         value={exp.venueName}
                         onChange={(e) => handleUpdateExperience(idx, 'venueName', e.target.value)}
@@ -779,8 +788,8 @@ const CCAProfileSettings: React.FC = () => {
                     </div>
                     <div className="md:col-span-1 space-y-2">
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-2">Grade/Position</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         disabled={!isEditMode}
                         value={exp.grade}
                         onChange={(e) => handleUpdateExperience(idx, 'grade', e.target.value)}
@@ -811,7 +820,7 @@ const CCAProfileSettings: React.FC = () => {
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-2">Confidential Notes for Admins</label>
-              <textarea 
+              <textarea
                 disabled={!isEditMode}
                 value={formData.specialNotes || ''}
                 onChange={(e) => handleInputChange('specialNotes', e.target.value)}
@@ -831,7 +840,7 @@ const CCAProfileSettings: React.FC = () => {
             <h3 className="text-2xl font-black mb-8 text-center">Select Your MBTI</h3>
             <div className="grid grid-cols-4 gap-4">
               {MBTI_LIST.map(mbti => (
-                <button 
+                <button
                   key={mbti}
                   onClick={() => {
                     handleInputChange('mbti', mbti);
@@ -843,7 +852,7 @@ const CCAProfileSettings: React.FC = () => {
                 </button>
               ))}
             </div>
-            <button 
+            <button
               onClick={() => setShowMbtiPopup(false)}
               className="w-full mt-8 py-4 bg-gray-100 dark:bg-white/5 rounded-2xl text-xs font-black uppercase tracking-widest"
             >
@@ -859,97 +868,97 @@ const CCAProfileSettings: React.FC = () => {
           <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowPreview(false)}></div>
           <div className="bg-white dark:bg-zinc-950 rounded-[3rem] w-full max-w-2xl h-[80vh] relative animate-scale-in border border-primary/10 overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
-               <h3 className="text-xl font-black uppercase tracking-widest">Profile Preview</h3>
-               <button onClick={() => setShowPreview(false)} className="size-10 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center"><span className="material-symbols-outlined">close</span></button>
+              <h3 className="text-xl font-black uppercase tracking-widest">Profile Preview</h3>
+              <button onClick={() => setShowPreview(false)} className="size-10 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center"><span className="material-symbols-outlined">close</span></button>
             </div>
             <div className="flex-1 overflow-y-auto p-10 space-y-10">
-               <div className="flex flex-col items-center text-center gap-6">
-                  <div className="size-32 rounded-full border-4 border-primary p-1 bg-white dark:bg-zinc-800 shadow-2xl">
-                     <img src={formData.image || cca.image} className="size-full rounded-full object-cover" />
-                  </div>
-                  <div className="space-y-1">
-                     <h2 className="text-3xl font-black">{formData.nickname || cca.name}</h2>
-                     <p className="text-primary font-black uppercase tracking-widest text-[10px]">{cca.grade} • {cca.venueName}</p>
-                  </div>
-               </div>
-               
-               <div className="flex flex-col items-center gap-8">
-                  {/* Stats Row */}
-                  <div className="flex gap-10">
-                    <div className="text-center">
-                      <p className="text-sm font-black">{formData.mbti || '-'}</p>
-                      <p className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">MBTI</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-black">{formData.zodiac?.split(' ')[0] || '-'}</p>
-                      <p className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">Zodiac</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm font-black">{calculateAge(formData.birthday || '')}</p>
-                      <p className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">Age</p>
-                    </div>
-                  </div>
+              <div className="flex flex-col items-center text-center gap-6">
+                <div className="size-32 rounded-full border-4 border-primary p-1 bg-white dark:bg-zinc-800 shadow-2xl">
+                  <img src={formData.image || cca.image} className="size-full rounded-full object-cover" />
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-3xl font-black">{formData.nickname || cca.name}</h2>
+                  <p className="text-primary font-black uppercase tracking-widest text-[10px]">{cca.grade} • {cca.venueName}</p>
+                </div>
+              </div>
 
-                  {/* Social Row */}
-                  <div className="flex flex-wrap justify-center gap-6">
-                    {Object.entries(formData.sns || {}).map(([key, val]) => val && (
-                      <div key={key} className="text-center">
-                         <p className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{key}</p>
-                      </div>
-                    ))}
+              <div className="flex flex-col items-center gap-8">
+                {/* Stats Row */}
+                <div className="flex gap-10">
+                  <div className="text-center">
+                    <p className="text-sm font-black">{formData.mbti || '-'}</p>
+                    <p className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">MBTI</p>
                   </div>
-
-                  {/* Intro Row */}
-                  <div className="max-w-md">
-                    <p className="text-center italic text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
-                      "{formData.oneLineStory || cca.description}"
-                    </p>
+                  <div className="text-center">
+                    <p className="text-sm font-black">{formData.zodiac?.split(' ')[0] || '-'}</p>
+                    <p className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">Zodiac</p>
                   </div>
-               </div>
-
-               {/* Instagram Style Gallery */}
-               <div className="space-y-4 pt-10 border-t border-gray-100 dark:border-white/5">
-                  <div className="flex items-center justify-center gap-8 border-t border-black dark:border-white -mt-10 pt-4">
-                    <div className="flex items-center gap-1.5 text-black dark:text-white">
-                      <span className="material-symbols-outlined text-sm">grid_on</span>
-                      <span className="text-[10px] font-black uppercase tracking-widest">Posts</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-400">
-                      <span className="material-symbols-outlined text-sm">movie</span>
-                      <span className="text-[10px] font-black uppercase tracking-widest">Reels</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-400">
-                      <span className="material-symbols-outlined text-sm">assignment_ind</span>
-                      <span className="text-[10px] font-black uppercase tracking-widest">Tagged</span>
-                    </div>
+                  <div className="text-center">
+                    <p className="text-sm font-black">{calculateAge(formData.birthday || '')}</p>
+                    <p className="text-[8px] text-gray-500 font-black uppercase tracking-tighter">Age</p>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-3 gap-1 md:gap-2">
-                    {galleryItems.length > 0 ? galleryItems.map((item) => (
-                      <div key={item.id} className="aspect-square bg-gray-100 dark:bg-white/5 relative group cursor-pointer overflow-hidden">
-                        <img 
-                          src={item.url} 
-                          className="size-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
-                           <div className="flex items-center gap-1">
-                              <span className="material-symbols-outlined text-sm fill-1">favorite</span>
-                              <span className="text-xs font-bold">{item.likes || 0}</span>
-                           </div>
-                           <div className="flex items-center gap-1">
-                              <span className="material-symbols-outlined text-sm fill-1">chat_bubble</span>
-                              <span className="text-xs font-bold">{item.commentsCount || 0}</span>
-                           </div>
+                {/* Social Row */}
+                <div className="flex flex-wrap justify-center gap-6">
+                  {Object.entries(formData.sns || {}).map(([key, val]) => val && (
+                    <div key={key} className="text-center">
+                      <p className="text-[10px] font-black text-black dark:text-white uppercase tracking-widest">{key}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Intro Row */}
+                <div className="max-w-md">
+                  <p className="text-center italic text-sm text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                    "{formData.oneLineStory || cca.description}"
+                  </p>
+                </div>
+              </div>
+
+              {/* Instagram Style Gallery */}
+              <div className="space-y-4 pt-10 border-t border-gray-100 dark:border-white/5">
+                <div className="flex items-center justify-center gap-8 border-t border-black dark:border-white -mt-10 pt-4">
+                  <div className="flex items-center gap-1.5 text-black dark:text-white">
+                    <span className="material-symbols-outlined text-sm">grid_on</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Posts</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-400">
+                    <span className="material-symbols-outlined text-sm">movie</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Reels</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-400">
+                    <span className="material-symbols-outlined text-sm">assignment_ind</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Tagged</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-1 md:gap-2">
+                  {galleryItems.length > 0 ? galleryItems.map((item) => (
+                    <div key={item.id} className="aspect-square bg-gray-100 dark:bg-white/5 relative group cursor-pointer overflow-hidden">
+                      <img
+                        src={item.url}
+                        className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 text-white">
+                        <div className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm fill-1">favorite</span>
+                          <span className="text-xs font-bold">{item.likes || 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm fill-1">chat_bubble</span>
+                          <span className="text-xs font-bold">{item.commentsCount || 0}</span>
                         </div>
                       </div>
-                    )) : (
-                      [1, 2, 3, 4, 5, 6].map((i) => (
-                        <div key={i} className="aspect-square bg-gray-100 dark:bg-white/5 animate-pulse rounded-sm"></div>
-                      ))
-                    )}
-                  </div>
-               </div>
+                    </div>
+                  )) : (
+                    [1, 2, 3, 4, 5, 6].map((i) => (
+                      <div key={i} className="aspect-square bg-gray-100 dark:bg-white/5 animate-pulse rounded-sm"></div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
