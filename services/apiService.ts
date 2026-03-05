@@ -337,9 +337,11 @@ export const apiService = {
     }
   },
 
-  async incrementPostViews(id: string): Promise<void> {
+  async incrementPostViews(id: string, userId?: string): Promise<void> {
     try {
-      await fetch(`${API_BASE}/posts?id=${encodeURIComponent(id)}&action=view`, {
+      let url = `${API_BASE}/posts?id=${encodeURIComponent(id)}&action=view`;
+      if (userId) url += `&userId=${encodeURIComponent(userId)}`;
+      await fetch(url, {
         method: 'PATCH'
       });
     } catch (error) {
@@ -347,9 +349,11 @@ export const apiService = {
     }
   },
 
-  async likePost(id: string): Promise<boolean> {
+  async likePost(id: string, userId?: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE}/posts?id=${encodeURIComponent(id)}&action=like`, {
+      let url = `${API_BASE}/posts?id=${encodeURIComponent(id)}&action=like`;
+      if (userId) url += `&userId=${encodeURIComponent(userId)}`;
+      const response = await fetch(url, {
         method: 'PATCH'
       });
       return response.ok;
@@ -385,9 +389,11 @@ export const apiService = {
     }
   },
 
-  async likeComment(id: string): Promise<boolean> {
+  async likeComment(id: string, userId?: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE}/comments?id=${encodeURIComponent(id)}&action=like`, {
+      let url = `${API_BASE}/comments?id=${encodeURIComponent(id)}&action=like`;
+      if (userId) url += `&userId=${encodeURIComponent(userId)}`;
+      const response = await fetch(url, {
         method: 'PATCH'
       });
       return response.ok;
@@ -397,9 +403,11 @@ export const apiService = {
     }
   },
 
-  async dislikeComment(id: string): Promise<boolean> {
+  async dislikeComment(id: string, userId?: string): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE}/comments?id=${encodeURIComponent(id)}&action=dislike`, {
+      let url = `${API_BASE}/comments?id=${encodeURIComponent(id)}&action=dislike`;
+      if (userId) url += `&userId=${encodeURIComponent(userId)}`;
+      const response = await fetch(url, {
         method: 'PATCH'
       });
       return response.ok;

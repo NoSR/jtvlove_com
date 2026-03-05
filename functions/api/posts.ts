@@ -9,6 +9,7 @@ interface Env {
 export const onRequest: PagesFunction<{ DB: D1Database }> = async (context: any) => {
   const { env, request } = context;
   const url = new URL(request.url);
+  const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
 
   // 0. Ensure tables exist (Defensive)
   try {
@@ -30,25 +31,22 @@ export const onRequest: PagesFunction<{ DB: D1Database }> = async (context: any)
     `).run();
 
     await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS post_comments (
-        id TEXT PRIMARY KEY,
+      CREATE TABLE IF NOT EXISTS post_views (
         post_id TEXT NOT NULL,
-        author TEXT NOT NULL,
-        content TEXT NOT NULL,
-        likes INTEGER DEFAULT 0,
-        dislikes INTEGER DEFAULT 0,
+        user_id TEXT,
+        ip_address TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+        PRIMARY KEY (post_id, user_id, ip_address)
       )
     `).run();
 
     await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS board_configs (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        categories TEXT,
-        display_order INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      CREATE TABLE IF NOT EXISTS post_likes (
+        post_id TEXT NOT NULL,
+        user_id TEXT,
+        ip_address TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (post_id, user_id, ip_address)
       )
     `).run();
   } catch (e) {
@@ -107,24 +105,45 @@ export const onRequest: PagesFunction<{ DB: D1Database }> = async (context: any)
     }
   }
 
-  // PATCH: 조회수 또는 추천수 증가
+  // PATCH: 조회수 또는 추천수 증가 (어뷰징 방지 포함)
   if (request.method === "PATCH") {
     const id = url.searchParams.get("id");
     const action = url.searchParams.get("action"); // 'view' or 'like'
+    const userId = url.searchParams.get("userId") || "anonymous";
 
     if (!id) return new Response("ID required", { status: 400 });
 
     try {
-      let query = "";
       if (action === "view") {
-        query = "UPDATE posts SET views = views + 1 WHERE id = ?";
+        // Check if already viewed
+        const existing = await env.DB.prepare(
+          "SELECT 1 FROM post_views WHERE post_id = ? AND (user_id = ? OR ip_address = ?)"
+        ).bind(id, userId, ip).first();
+
+        if (!existing) {
+          await env.DB.prepare(
+            "INSERT INTO post_views (post_id, user_id, ip_address) VALUES (?, ?, ?)"
+          ).bind(id, userId, ip).run();
+          await env.DB.prepare("UPDATE posts SET views = views + 1 WHERE id = ?").bind(id).run();
+        }
       } else if (action === "like") {
-        query = "UPDATE posts SET likes = likes + 1 WHERE id = ?";
+        // Check if already liked
+        const existing = await env.DB.prepare(
+          "SELECT 1 FROM post_likes WHERE post_id = ? AND (user_id = ? OR ip_address = ?)"
+        ).bind(id, userId, ip).first();
+
+        if (!existing) {
+          await env.DB.prepare(
+            "INSERT INTO post_likes (post_id, user_id, ip_address) VALUES (?, ?, ?)"
+          ).bind(id, userId, ip).run();
+          await env.DB.prepare("UPDATE posts SET likes = likes + 1 WHERE id = ?").bind(id).run();
+        } else {
+          return new Response(JSON.stringify({ error: "Already liked" }), { status: 403, headers: { "Content-Type": "application/json" } });
+        }
       } else {
         return new Response("Invalid action", { status: 400 });
       }
 
-      await env.DB.prepare(query).bind(id).run();
       return new Response(JSON.stringify({ success: true }), {
         headers: { "Content-Type": "application/json" },
       });
@@ -143,6 +162,10 @@ export const onRequest: PagesFunction<{ DB: D1Database }> = async (context: any)
 
     try {
       await env.DB.prepare("DELETE FROM posts WHERE id = ?").bind(id).run();
+      // Cascade delete for views and likes (since they are linked by post_id)
+      await env.DB.prepare("DELETE FROM post_views WHERE post_id = ?").bind(id).run();
+      await env.DB.prepare("DELETE FROM post_likes WHERE post_id = ?").bind(id).run();
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { "Content-Type": "application/json" },
       });

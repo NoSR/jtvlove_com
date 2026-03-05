@@ -40,9 +40,9 @@ const PostDetail: React.FC = () => {
          if (data?.is_secret && !isAuthorized && data.author !== user?.nickname && user?.role !== 'super_admin') {
             setShowPasswordInput(true);
          } else {
-            // Increment views
+            // Increment views (Only once per user/IP handled by backend)
             if (data && data.author !== user?.nickname) {
-               await apiService.incrementPostViews(id);
+               await apiService.incrementPostViews(id, user?.nickname);
             }
          }
 
@@ -71,12 +71,15 @@ const PostDetail: React.FC = () => {
 
    const handleLikePost = async () => {
       if (!id) return;
-      if (user?.nickname === post?.author) {
+      if (!user) return alert('로그인이 필요합니다.');
+      if (user.nickname === post?.author) {
          return alert('자신의 게시글에는 좋아요를 누를 수 없습니다.');
       }
-      const success = await apiService.likePost(id);
+      const success = await apiService.likePost(id, user.nickname);
       if (success) {
          setPost(prev => prev ? { ...prev, likes: (prev.likes || 0) + 1 } : null);
+      } else {
+         alert('이미 추천하셨거나 요청을 처리할 수 없습니다.');
       }
    };
 
@@ -99,9 +102,16 @@ const PostDetail: React.FC = () => {
    };
 
    const handleCommentReaction = async (commentId: string, action: 'like' | 'dislike') => {
+      if (!user) return alert('로그인이 필요합니다.');
+
+      const comment = comments.find(c => c.id === commentId);
+      if (comment?.author === user.nickname) {
+         return alert('자신의 댓글에는 추천/비추천을 할 수 없습니다.');
+      }
+
       const success = action === 'like'
-         ? await apiService.likeComment(commentId)
-         : await apiService.dislikeComment(commentId);
+         ? await apiService.likeComment(commentId, user.nickname)
+         : await apiService.dislikeComment(commentId, user.nickname);
 
       if (success) {
          setComments(prev => prev.map(c =>
@@ -109,6 +119,8 @@ const PostDetail: React.FC = () => {
                ? { ...c, [action === 'like' ? 'likes' : 'dislikes']: (c[action === 'like' ? 'likes' : 'dislikes'] || 0) + 1 }
                : c
          ));
+      } else {
+         alert('이미 반응을 남기셨거나 요청을 처리할 수 없습니다.');
       }
    };
 
@@ -334,14 +346,16 @@ const PostDetail: React.FC = () => {
                                  <div className="flex items-center gap-4">
                                     <button
                                        onClick={() => handleCommentReaction(c.id, 'like')}
-                                       className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-primary transition-colors uppercase"
+                                       className={`flex items-center gap-2 text-[10px] font-black transition-colors uppercase ${c.author === user?.nickname ? 'opacity-30 cursor-not-allowed' : 'text-gray-400 hover:text-primary'}`}
+                                       title={c.author === user?.nickname ? '자신의 댓글에는 추천할 수 없습니다' : ''}
                                     >
                                        <span className="material-symbols-outlined text-sm">thumb_up</span>
                                        {c.likes || 0}
                                     </button>
                                     <button
                                        onClick={() => handleCommentReaction(c.id, 'dislike')}
-                                       className="flex items-center gap-2 text-[10px] font-black text-gray-400 hover:text-red-500 transition-colors uppercase"
+                                       className={`flex items-center gap-2 text-[10px] font-black transition-colors uppercase ${c.author === user?.nickname ? 'opacity-30 cursor-not-allowed' : 'text-gray-400 hover:text-red-500'}`}
+                                       title={c.author === user?.nickname ? '자신의 댓글에는 비추천할 수 없습니다' : ''}
                                     >
                                        <span className="material-symbols-outlined text-sm">thumb_down</span>
                                        {c.dislikes || 0}
