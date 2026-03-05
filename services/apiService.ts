@@ -314,7 +314,7 @@ export const apiService = {
   async updatePost(id: string, data: Partial<Post>): Promise<boolean> {
     try {
       const response = await fetch(`${API_BASE}/posts?id=${encodeURIComponent(id)}`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
@@ -339,7 +339,7 @@ export const apiService = {
 
   async incrementPostViews(id: string): Promise<void> {
     try {
-      await fetch(`${API_BASE} / posts ? id = ${encodeURIComponent(id)}& action=view`, {
+      await fetch(`${API_BASE}/posts?id=${encodeURIComponent(id)}&action=view`, {
         method: 'PATCH'
       });
     } catch (error) {

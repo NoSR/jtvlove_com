@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiService } from '../services/apiService';
 import { Post } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 const Community: React.FC = () => {
    const [searchParams, setSearchParams] = useSearchParams();
    const boardId = searchParams.get('board') || 'Free Board';
+   const { user } = useAuth();
    const [posts, setPosts] = useState<Post[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [searchTerm, setSearchTerm] = useState('');
@@ -125,13 +127,14 @@ const Community: React.FC = () => {
       e.preventDefault();
       if (!formData.title || !formData.content) return alert('모든 필드를 입력해주세요.');
       if (formData.is_secret && !formData.password) return alert('비밀글로 설정하려면 비밀번호를 입력해주세요.');
+      if (!user) return alert('로그인이 필요합니다.');
 
       setIsSubmitting(true);
       try {
          const result = await apiService.createPost({
             ...formData,
-            author: '길동이', // Mock user
-            authorAvatar: 'https://picsum.photos/100/100?random=1'
+            author: user.nickname,
+            authorAvatar: `https://picsum.photos/100/100?seed=${user.nickname}`
          });
 
          if (result) {

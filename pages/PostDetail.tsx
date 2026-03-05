@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '../services/apiService';
 import { Post } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 const PostDetail: React.FC = () => {
    const { id } = useParams();
    const navigate = useNavigate();
+   const { user } = useAuth();
    const [post, setPost] = useState<Post | null>(null);
    const [comments, setComments] = useState<any[]>([]);
    const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +17,18 @@ const PostDetail: React.FC = () => {
    const [inputPassword, setInputPassword] = useState('');
    const [isAuthorized, setIsAuthorized] = useState(false);
 
+   // Edit Modal States
+   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+   const [isUpdating, setIsUpdating] = useState(false);
+   const [editFormData, setEditFormData] = useState({
+      title: '',
+      category: '',
+      content: '',
+      image: '',
+      is_secret: false,
+      password: ''
+   });
+
    const fetchPost = async () => {
       if (!id) return;
       setIsLoading(true);
@@ -23,11 +37,13 @@ const PostDetail: React.FC = () => {
          setPost(data);
 
          // If it's a secret post and we don't have authorization, show password input
-         if (data?.is_secret && !isAuthorized) {
+         if (data?.is_secret && !isAuthorized && data.author !== user?.nickname && user?.role !== 'super_admin') {
             setShowPasswordInput(true);
          } else {
-            // Increment views (mocking "not author" check by just doing it)
-            await apiService.incrementPostViews(id);
+            // Increment views
+            if (data && data.author !== user?.nickname) {
+               await apiService.incrementPostViews(id);
+            }
          }
 
          // Fetch comments
@@ -41,7 +57,7 @@ const PostDetail: React.FC = () => {
 
    useEffect(() => {
       fetchPost();
-   }, [id, isAuthorized]);
+   }, [id, isAuthorized, user?.nickname]);
 
    const handleVerifyPassword = (e: React.FormEvent) => {
       e.preventDefault();
@@ -55,6 +71,9 @@ const PostDetail: React.FC = () => {
 
    const handleLikePost = async () => {
       if (!id) return;
+      if (user?.nickname === post?.author) {
+         return alert('자신의 게시글에는 좋아요를 누를 수 없습니다.');
+      }
       const success = await apiService.likePost(id);
       if (success) {
          setPost(prev => prev ? { ...prev, likes: (prev.likes || 0) + 1 } : null);
@@ -63,10 +82,12 @@ const PostDetail: React.FC = () => {
 
    const handlePostComment = async () => {
       if (!id || !commentContent.trim()) return;
+      if (!user) return alert('로그인이 필요합니다.');
+
       setIsSubmittingComment(true);
       const success = await apiService.createComment({
          postId: id,
-         author: '길동이', // Mock user
+         author: user.nickname,
          content: commentContent
       });
       if (success) {
@@ -97,6 +118,51 @@ const PostDetail: React.FC = () => {
       if (success) {
          alert('삭제되었습니다.');
          navigate('/community');
+      }
+   };
+
+   const handleOpenEdit = () => {
+      if (!post) return;
+      setEditFormData({
+         title: post.title,
+         category: post.category || '',
+         content: post.content,
+         image: post.image || '',
+         is_secret: !!post.is_secret,
+         password: post.password || ''
+      });
+      setIsEditModalOpen(true);
+   };
+
+   const handleUpdatePost = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!id || !editFormData.title || !editFormData.content) return alert('제목과 내용을 입력해주세요.');
+
+      setIsUpdating(true);
+      try {
+         const success = await apiService.updatePost(id, editFormData);
+         if (success) {
+            alert('수정되었습니다.');
+            setIsEditModalOpen(false);
+            fetchPost();
+         } else {
+            alert('수정에 실패했습니다.');
+         }
+      } catch (error) {
+         console.error('Update post error:', error);
+         alert('오류가 발생했습니다.');
+      }
+      setIsUpdating(false);
+   };
+
+   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+         const reader = new FileReader();
+         reader.onloadend = () => {
+            setEditFormData(prev => ({ ...prev, image: reader.result as string }));
+         };
+         reader.readAsDataURL(file);
       }
    };
 
@@ -153,6 +219,8 @@ const PostDetail: React.FC = () => {
       );
    }
 
+   const isAuthor = user?.nickname === post.author || user?.role === 'super_admin';
+
    return (
       <div className="min-h-screen bg-background-light dark:bg-background-dark pb-32">
          <div className="max-w-4xl mx-auto w-full px-4 pt-12">
@@ -173,7 +241,7 @@ const PostDetail: React.FC = () => {
                </div>
                <div className="flex items-center gap-4">
                   <div className="size-16 rounded-3xl bg-zinc-100 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-zinc-200 dark:border-white/10">
-                     <img src={post.authorAvatar || 'https://picsum.photos/100/100?random=1'} alt="Avatar" className="w-full h-full object-cover" />
+                     <img src={post.authorAvatar || `https://picsum.photos/100/100?seed=${post.author}`} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
                   <div>
                      <p className="font-black text-lg text-zinc-950 dark:text-white">{post.author}</p>
@@ -187,7 +255,7 @@ const PostDetail: React.FC = () => {
                {/* Fixed Image Display at the Top */}
                {post.image && (
                   <div className="w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-200 dark:border-white/5 bg-zinc-100 dark:bg-white/5">
-                     <img src={post.image} alt="Post Attachment" className="w-full h-auto max-h-[600px] object-contain" />
+                     <img src={post.image} alt="Post Attachment" className="w-full h-auto max-h-[600px] object-contain mx-auto" />
                   </div>
                )}
 
@@ -209,25 +277,33 @@ const PostDetail: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-4">
-                     {/* Edit/Delete shown only to author (mocking check) */}
-                     <button className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-100 dark:bg-white/5 text-[11px] font-black text-gray-500 hover:text-zinc-950 dark:hover:text-white transition-colors uppercase tracking-widest">
-                        <span className="material-symbols-outlined text-sm">edit</span>
-                        Edit
-                     </button>
-                     <button
-                        onClick={handleDeletePost}
-                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-100 dark:bg-white/5 text-[11px] font-black text-gray-500 hover:text-red-500 transition-colors uppercase tracking-widest"
-                     >
-                        <span className="material-symbols-outlined text-sm">delete</span>
-                        Delete
-                     </button>
-                     <button
-                        onClick={handleLikePost}
-                        className="flex items-center gap-3 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-10 py-3 rounded-2xl font-black shadow-2xl hover:scale-105 active:scale-95 transition-all uppercase text-[11px] tracking-widest"
-                     >
-                        <span className="material-symbols-outlined text-base">thumb_up</span>
-                        LIKE POST
-                     </button>
+                     {isAuthor && (
+                        <>
+                           <button
+                              onClick={handleOpenEdit}
+                              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-100 dark:bg-white/5 text-[11px] font-black text-gray-500 hover:text-zinc-950 dark:hover:text-white transition-colors uppercase tracking-widest"
+                           >
+                              <span className="material-symbols-outlined text-sm">edit</span>
+                              Edit
+                           </button>
+                           <button
+                              onClick={handleDeletePost}
+                              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-zinc-100 dark:bg-white/5 text-[11px] font-black text-gray-500 hover:text-red-500 transition-colors uppercase tracking-widest"
+                           >
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                              Delete
+                           </button>
+                        </>
+                     )}
+                     {!isAuthor && (
+                        <button
+                           onClick={handleLikePost}
+                           className="flex items-center gap-3 bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-10 py-3 rounded-2xl font-black shadow-2xl hover:scale-105 active:scale-95 transition-all uppercase text-[11px] tracking-widest"
+                        >
+                           <span className="material-symbols-outlined text-base">thumb_up</span>
+                           LIKE POST
+                        </button>
+                     )}
                   </div>
                </div>
             </article>
@@ -245,7 +321,7 @@ const PostDetail: React.FC = () => {
                      comments.map((c) => (
                         <div key={c.id} className="bg-zinc-50 dark:bg-white/5 rounded-[2rem] p-8 border border-zinc-200 dark:border-white/5 flex gap-6 group transition-all hover:border-primary/20">
                            <div className="size-14 rounded-2xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-xl font-black overflow-hidden border border-zinc-300 dark:border-white/10 shrink-0">
-                              <img src={`https://picsum.photos/100/100?random=${c.id}`} alt="Avatar" className="w-full h-full object-cover" />
+                              <img src={`https://picsum.photos/100/100?seed=${c.author}`} alt="Avatar" className="w-full h-full object-cover" />
                            </div>
                            <div className="flex-1 space-y-4">
                               <div className="flex items-center justify-between">
@@ -290,7 +366,9 @@ const PostDetail: React.FC = () => {
                <div className="bg-zinc-950 p-8 rounded-[2.5rem] shadow-2xl border border-white/10">
                   <div className="flex flex-col gap-6">
                      <div className="flex items-center gap-4">
-                        <div className="size-10 rounded-xl bg-primary flex items-center justify-center font-black text-black">G</div>
+                        <div className="size-10 rounded-xl bg-primary flex items-center justify-center font-black text-black">
+                           {user?.nickname?.[0] || 'G'}
+                        </div>
                         <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">WRITE A COMMENT</span>
                      </div>
                      <textarea
@@ -330,6 +408,101 @@ const PostDetail: React.FC = () => {
                </button>
             </div>
          </div>
+
+         {/* Edit Modal */}
+         {isEditModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 animate-fade-in">
+               <div className="absolute inset-0 bg-zinc-950/80 backdrop-blur-xl" onClick={() => setIsEditModalOpen(false)}></div>
+               <div className="relative bg-white dark:bg-zinc-900 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] border border-white/10 shadow-2xl animate-scale-up">
+                  <div className="sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-10 py-8 border-b border-zinc-100 dark:border-white/5 flex justify-between items-center z-10">
+                     <div>
+                        <h3 className="text-3xl font-black uppercase italic tracking-tight">Edit Post</h3>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Update your content</p>
+                     </div>
+                     <button onClick={() => setIsEditModalOpen(false)} className="size-12 rounded-2xl hover:bg-zinc-100 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
+                        <span className="material-symbols-outlined">close</span>
+                     </button>
+                  </div>
+
+                  <form onSubmit={handleUpdatePost} className="p-10 space-y-8">
+                     <div className="space-y-3">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 px-1">Post Title</label>
+                        <input
+                           type="text"
+                           className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 rounded-2xl px-8 py-5 text-lg font-black outline-none focus:ring-4 focus:ring-primary/10 transition-all"
+                           value={editFormData.title}
+                           onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                        />
+                     </div>
+
+                     <div className="space-y-3 text-right">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 px-1 block text-left">Content</label>
+                        <textarea
+                           className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 rounded-[2rem] px-8 py-8 text-base font-medium outline-none focus:ring-4 focus:ring-primary/10 transition-all min-h-[300px] resize-none"
+                           value={editFormData.content}
+                           onChange={(e) => setEditFormData(prev => ({ ...prev, content: e.target.value }))}
+                        ></textarea>
+
+                        <div className="inline-block relative">
+                           <input type="file" id="edit-image-upload" className="hidden" accept="image/*" onChange={handleImageChange} />
+                           <label htmlFor="edit-image-upload" className="flex items-center gap-2 px-6 py-3 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-[10px] font-black uppercase tracking-widest cursor-pointer hover:opacity-90 transition-all">
+                              <span className="material-symbols-outlined text-sm">image</span>
+                              CHANGE IMAGE
+                           </label>
+                        </div>
+                     </div>
+
+                     {editFormData.image && (
+                        <div className="relative rounded-3xl overflow-hidden border border-zinc-100 dark:border-white/10 group">
+                           <img src={editFormData.image} alt="Preview" className="w-full h-auto max-h-[400px] object-contain bg-zinc-50 dark:bg-zinc-800" />
+                           <button type="button" onClick={() => setEditFormData(prev => ({ ...prev, image: '' }))} className="absolute top-4 right-4 size-10 rounded-full bg-zinc-900/50 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="material-symbols-outlined">delete</span>
+                           </button>
+                        </div>
+                     )}
+
+                     <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-10 border-t border-zinc-100 dark:border-white/5">
+                        <div className="flex items-center gap-6">
+                           <label className="flex items-center gap-3 cursor-pointer group">
+                              <input
+                                 type="checkbox"
+                                 className="size-6 rounded-lg border-2 border-zinc-200 dark:border-white/10 text-primary focus:ring-primary transition-all cursor-pointer bg-transparent"
+                                 checked={editFormData.is_secret}
+                                 onChange={(e) => setEditFormData(prev => ({ ...prev, is_secret: e.target.checked }))}
+                              />
+                              <span className="text-[11px] font-black uppercase tracking-widest text-gray-500 group-hover:text-zinc-950 dark:group-hover:text-white transition-colors">Secret Post</span>
+                           </label>
+                           {editFormData.is_secret && (
+                              <input
+                                 type="password"
+                                 placeholder="PIN (4 digits)"
+                                 className="w-32 bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5 rounded-xl px-4 py-3 text-xs font-black outline-none focus:ring-4 focus:ring-primary/10 transition-all text-center tracking-[0.3em]"
+                                 maxLength={4}
+                                 value={editFormData.password}
+                                 onChange={(e) => setEditFormData(prev => ({ ...prev, password: e.target.value }))}
+                              />
+                           )}
+                        </div>
+
+                        <button
+                           type="submit"
+                           disabled={isUpdating}
+                           className="w-full md:w-auto px-16 h-16 bg-primary text-black rounded-2xl font-black uppercase text-xs tracking-[0.3em] shadow-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3"
+                        >
+                           {isUpdating ? (
+                              <div className="size-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                           ) : (
+                              <>
+                                 <span className="material-symbols-outlined">save</span>
+                                 UPDATE POST
+                              </>
+                           )}
+                        </button>
+                     </div>
+                  </form>
+               </div>
+            </div>
+         )}
       </div>
    );
 };

@@ -160,8 +160,7 @@ export const onRequest: PagesFunction<{ DB: D1Database }> = async (context: any)
       const body = await request.json();
       if (!body) throw new Error("Request body is empty");
 
-      let id = `p_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
+      const id = `p_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const { board, category, title, author, content, image, is_secret, password } = body;
 
       if (!board || !title || !author || !content) {
@@ -184,6 +183,42 @@ export const onRequest: PagesFunction<{ DB: D1Database }> = async (context: any)
 
       return new Response(JSON.stringify({ id, success: true }), {
         status: 201,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error: any) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  // PUT: 게시글 수정
+  if (request.method === "PUT") {
+    const id = url.searchParams.get("id");
+    if (!id) return new Response("ID required", { status: 400 });
+
+    try {
+      const body = await request.json();
+      const { category, title, content, image, is_secret, password } = body;
+
+      if (!title || !content) {
+        throw new Error("Title and content are required");
+      }
+
+      await env.DB.prepare(
+        "UPDATE posts SET category = ?, title = ?, content = ?, image = ?, is_secret = ?, password = ? WHERE id = ?"
+      ).bind(
+        category || null,
+        title,
+        content,
+        image || null,
+        is_secret ? 1 : 0,
+        password || null,
+        id
+      ).run();
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { "Content-Type": "application/json" },
       });
     } catch (error: any) {
