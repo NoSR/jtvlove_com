@@ -16,7 +16,6 @@ const AdminMessages: React.FC = () => {
 
     // Compose state
     const [showCompose, setShowCompose] = useState(false);
-    const [composeReceiverType, setComposeReceiverType] = useState('user');
     const [composeSearchTerm, setComposeSearchTerm] = useState('');
     const [composeSearchResults, setComposeSearchResults] = useState<any[]>([]);
     const [composeSelectedUser, setComposeSelectedUser] = useState<any | null>(null);
@@ -61,7 +60,7 @@ const AdminMessages: React.FC = () => {
             alert('검색어를 입력하세요.');
             return;
         }
-        const results = await apiService.searchMessageRecipients(composeSearchTerm, composeReceiverType);
+        const results = await apiService.searchMessageRecipients(composeSearchTerm, 'all');
         if (!results || results.length === 0) {
             alert('검색 결과가 없습니다.');
         }
@@ -79,7 +78,7 @@ const AdminMessages: React.FC = () => {
             sender_type: 'venue_admin',
             sender_name: venueName,
             receiver_id: composeSelectedUser.id,
-            receiver_type: composeReceiverType,
+            receiver_type: composeSelectedUser.type,
             receiver_name: composeSelectedUser.name,
             subject: composeSubject,
             content: composeContent,
@@ -238,36 +237,9 @@ const AdminMessages: React.FC = () => {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">수신자 유형</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {[
-                                        { val: 'user', label: '👤 고객' },
-                                        { val: 'cca', label: '💃 스태프 (CCA)' },
-                                        { val: 'system', label: '💻 시스템 관리자' }
-                                    ].map(type => (
-                                        <button
-                                            key={type.val}
-                                            onClick={() => {
-                                                setComposeReceiverType(type.val);
-                                                setComposeSearchResults([]);
-                                                if (type.val === 'system') {
-                                                    setComposeSelectedUser({ id: 'super', name: '슈퍼관리자 (시스템 관리팀)', type: 'system' });
-                                                } else {
-                                                    setComposeSelectedUser(null);
-                                                }
-                                            }}
-                                            className={`flex-1 min-w-[100px] py-3 px-2 rounded-xl text-[10px] font-black tracking-tighter uppercase transition-colors border ${composeReceiverType === type.val ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-gray-200 dark:border-white/10 text-gray-500 hover:border-gray-300'}`}
-                                        >
-                                            {type.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
                             {!composeSelectedUser ? (
                                 <div className="space-y-2 border border-gray-200 dark:border-white/5 rounded-2xl p-4 bg-gray-50 dark:bg-white/5">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">수신자 닉네임 / 업체명 검색</label>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">수신자 닉네임 검색</label>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"

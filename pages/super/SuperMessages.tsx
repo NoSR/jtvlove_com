@@ -9,7 +9,6 @@ const SuperMessages: React.FC = () => {
 
     // Compose state
     const [showCompose, setShowCompose] = useState(false);
-    const [composeReceiverType, setComposeReceiverType] = useState('user');
     const [composeSearchTerm, setComposeSearchTerm] = useState('');
     const [composeSearchResults, setComposeSearchResults] = useState<any[]>([]);
     const [composeSelectedUser, setComposeSelectedUser] = useState<any | null>(null);
@@ -43,7 +42,7 @@ const SuperMessages: React.FC = () => {
             alert('검색어를 입력하세요.');
             return;
         }
-        const results = await apiService.searchMessageRecipients(composeSearchTerm, composeReceiverType);
+        const results = await apiService.searchMessageRecipients(composeSearchTerm, 'all');
         if (!results || results.length === 0) {
             alert('검색 결과가 없습니다.');
         }
@@ -61,7 +60,7 @@ const SuperMessages: React.FC = () => {
             sender_type: 'system',
             sender_name: '슈퍼관리자',
             receiver_id: composeSelectedUser.id,
-            receiver_type: composeReceiverType,
+            receiver_type: composeSelectedUser.type,
             receiver_name: composeSelectedUser.name,
             subject: composeSubject,
             content: composeContent,
@@ -215,25 +214,6 @@ const SuperMessages: React.FC = () => {
                         </div>
 
                         <div className="mt-6 space-y-6 overflow-y-auto pr-2 custom-scrollbar">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em]">Target Type</label>
-                                <div className="flex gap-2">
-                                    {[
-                                        { val: 'user', label: 'User' },
-                                        { val: 'cca', label: 'CCA' },
-                                        { val: 'venue_admin', label: 'Venue' }
-                                    ].map(type => (
-                                        <button
-                                            key={type.val}
-                                            onClick={() => { setComposeReceiverType(type.val); setComposeSearchResults([]); setComposeSelectedUser(null); }}
-                                            className={`flex-1 py-3 px-2 rounded font-black text-[10px] tracking-widest uppercase transition-colors border ${composeReceiverType === type.val ? 'bg-red-600/20 border-red-500 text-red-500' : 'bg-black border-white/10 text-gray-500 hover:border-white/30'}`}
-                                        >
-                                            {type.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
                             {!composeSelectedUser ? (
                                 <div className="space-y-3 bg-black/50 p-4 rounded border border-white/5">
                                     <label className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em]">Target Filter (Nickname/Name)</label>

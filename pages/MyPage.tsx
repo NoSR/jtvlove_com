@@ -17,9 +17,8 @@ const MyPage: React.FC = () => {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [selectedMsg, setSelectedMsg] = useState<any | null>(null);
   const [replyText, setReplyText] = useState('');
-  const [replying, setReplying] = useState(false);
+  const [replying, setReplying] = useState(false); // Messages Compose
   const [showComposeMsg, setShowComposeMsg] = useState(false);
-  const [composeRecType, setComposeRecType] = useState('user');
   const [composeSearchTerm, setComposeSearchTerm] = useState('');
   const [composeSearchResults, setComposeSearchResults] = useState<any[]>([]);
   const [composeSelectedUser, setComposeSelectedUser] = useState<any | null>(null);
@@ -150,7 +149,7 @@ const MyPage: React.FC = () => {
       alert('검색어를 입력하세요.');
       return;
     }
-    const results = await apiService.searchMessageRecipients(composeSearchTerm, composeRecType);
+    const results = await apiService.searchMessageRecipients(composeSearchTerm, 'all');
     if (!results || results.length === 0) {
       alert('검색 결과가 없습니다.');
     }
@@ -168,7 +167,7 @@ const MyPage: React.FC = () => {
       sender_type: 'user',
       sender_name: user.nickname || user.realName || '',
       receiver_id: composeSelectedUser.id,
-      receiver_type: composeRecType,
+      receiver_type: composeSelectedUser.type,
       receiver_name: composeSelectedUser.name,
       subject: composeSubject,
       content: composeContent
@@ -953,38 +952,10 @@ const MyPage: React.FC = () => {
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">수신자 유형</label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { val: 'user', label: '👤 일반 회원' },
-                    { val: 'cca', label: '💃 스태프 (CCA)' },
-                    { val: 'venue_admin', label: '🏪 업체 관리자' },
-                    { val: 'system', label: '💻 시스템 관리자' }
-                  ].map(type => (
-                    <button
-                      key={type.val}
-                      onClick={() => {
-                        setComposeRecType(type.val);
-                        setComposeSearchResults([]);
-                        if (type.val === 'system') {
-                          setComposeSelectedUser({ id: 'super', name: '슈퍼관리자 (시스템 관리팀)', type: 'system' });
-                        } else {
-                          setComposeSelectedUser(null);
-                        }
-                      }}
-                      className={`flex-1 min-w-[100px] py-3 px-2 rounded-xl text-[10px] font-black tracking-tighter uppercase transition-colors border ${composeRecType === type.val ? 'bg-primary/10 border-primary text-primary' : 'bg-transparent border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-zinc-300'}`}
-                    >
-                      {type.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* 수신자 검색 */}
               {!composeSelectedUser ? (
                 <div className="space-y-2 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 bg-zinc-50 dark:bg-zinc-900/50">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">수신자 닉네임 / 업체명 검색</label>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">수신자 닉네임 검색</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
