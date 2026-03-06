@@ -12,6 +12,8 @@ const VenueDetail: React.FC = () => {
    const [isLoading, setIsLoading] = useState(true);
    const [activeTab, setActiveTab] = useState<'info' | 'menu' | 'tables' | 'staff'>('info');
    const [showBookingModal, setShowBookingModal] = useState(false);
+   const [venueNotices, setVenueNotices] = useState<any[]>([]);
+   const [expandedNoticeId, setExpandedNoticeId] = useState<string | null>(null);
    const [bookingForm, setBookingForm] = useState({
       date: new Date().toISOString().split('T')[0],
       time: '19:00',
@@ -27,9 +29,10 @@ const VenueDetail: React.FC = () => {
          if (!id) return;
          setIsLoading(true);
          try {
-            const [venueData, ccaData] = await Promise.all([
+            const [venueData, ccaData, noticesData] = await Promise.all([
                apiService.getVenueById(id),
-               apiService.getCCAs(id)
+               apiService.getCCAs(id),
+               apiService.getVenueNotices(id)
             ]);
 
             if (venueData) {
@@ -42,6 +45,7 @@ const VenueDetail: React.FC = () => {
                setVenue(mappedVenue);
             }
             setVenueCCAs(ccaData || []);
+            setVenueNotices(Array.isArray(noticesData) ? noticesData : []);
          } catch (err) {
             console.error("Failed to load venue detail", err);
          } finally {
@@ -393,6 +397,60 @@ const VenueDetail: React.FC = () => {
                            <p className="text-xs font-black text-zinc-400 uppercase tracking-widest">현재 출근 중인 스태프가 없습니다.</p>
                         </div>
                      )}
+                  </div>
+               )}
+            </div>
+
+            {/* Venue Notices Section */}
+            <div className="mt-10 space-y-4">
+               <div className="flex items-center justify-between px-2">
+                  <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                     <span className="w-1.5 h-6 bg-primary rounded-full"></span>
+                     업체 공지사항
+                  </h3>
+                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Latest {venueNotices.length}</span>
+               </div>
+
+               {venueNotices.length > 0 ? (
+                  <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-primary/5 shadow-xl overflow-hidden divide-y divide-zinc-100 dark:divide-zinc-800">
+                     {venueNotices.map((notice: any) => {
+                        const isExpanded = expandedNoticeId === notice.id;
+                        const dateStr = notice.created_at ? new Date(notice.created_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' }) : '';
+                        return (
+                           <div
+                              key={notice.id}
+                              className={`transition-all cursor-pointer ${notice.is_pinned ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-zinc-50 dark:hover:bg-white/5'}`}
+                              onClick={() => setExpandedNoticeId(isExpanded ? null : notice.id)}
+                           >
+                              <div className="flex items-center justify-between px-8 py-5">
+                                 <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    {notice.is_pinned ? (
+                                       <span className="material-symbols-outlined text-primary text-lg flex-shrink-0">push_pin</span>
+                                    ) : (
+                                       <span className="material-symbols-outlined text-zinc-300 dark:text-zinc-600 text-lg flex-shrink-0">article</span>
+                                    )}
+                                    <p className={`font-bold text-sm truncate ${notice.is_pinned ? 'text-primary' : ''}`}>{notice.title}</p>
+                                 </div>
+                                 <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                                    <span className="text-[10px] font-bold text-zinc-400">{dateStr}</span>
+                                    <span className={`material-symbols-outlined text-zinc-400 text-sm transition-transform ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                                 </div>
+                              </div>
+                              {isExpanded && (
+                                 <div className="px-8 pb-6 pt-0">
+                                    <div className="bg-zinc-50 dark:bg-black/30 rounded-2xl p-6 border border-zinc-100 dark:border-zinc-800">
+                                       <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{notice.content}</p>
+                                    </div>
+                                 </div>
+                              )}
+                           </div>
+                        );
+                     })}
+                  </div>
+               ) : (
+                  <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] border border-primary/5 shadow-xl py-16 text-center">
+                     <span className="material-symbols-outlined text-4xl text-zinc-200 dark:text-zinc-700 mb-2">campaign</span>
+                     <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mt-2">등록된 공지사항이 없습니다.</p>
                   </div>
                )}
             </div>

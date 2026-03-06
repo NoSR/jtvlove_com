@@ -1193,6 +1193,18 @@ export const apiService = {
       throw new Error(errData.error || 'Failed to update site doc');
     }
     return response.ok;
+  },
+
+  // Venue Notices (업체 공지사항)
+  async getVenueNotices(venueId: string): Promise<any[]> {
+    try {
+      const response = await fetch(`${API_BASE}/venue-notices?venueId=${encodeURIComponent(venueId)}`);
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.error('getVenueNotices error:', error);
+      return [];
+    }
   }
 };
 
