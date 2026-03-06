@@ -26,8 +26,8 @@ export const onRequest: any = async (context: any) => {
         if (type === "all" || type === "user") {
             try {
                 const { results: users } = await env.DB.prepare(
-                    `SELECT id, nickname, email, 'user' as type FROM users WHERE nickname LIKE ? LIMIT 10`
-                ).bind(searchTerm).all();
+                    `SELECT id, nickname, email, 'user' as type FROM users WHERE nickname LIKE ? OR email LIKE ? LIMIT 10`
+                ).bind(searchTerm, searchTerm).all();
                 if (users) {
                     results.push(...users.map((u: any) => ({
                         id: u.id,
@@ -43,7 +43,7 @@ export const onRequest: any = async (context: any) => {
         if (type === "all" || type === "cca") {
             try {
                 const { results: ccas } = await env.DB.prepare(
-                    `SELECT id, name, nickname, venue_name, 'cca' as type FROM ccas WHERE name LIKE ? OR nickname LIKE ? LIMIT 10`
+                    `SELECT id, name, nickname, venue_name, 'cca' as type FROM ccas WHERE nickname LIKE ? OR name LIKE ? LIMIT 10`
                 ).bind(searchTerm, searchTerm).all();
                 if (ccas) {
                     results.push(...ccas.map((c: any) => ({
@@ -60,8 +60,8 @@ export const onRequest: any = async (context: any) => {
         if (type === "all" || type === "venue") {
             try {
                 const { results: venues } = await env.DB.prepare(
-                    `SELECT id, name, 'venue_admin' as type FROM venues WHERE name LIKE ? LIMIT 10`
-                ).bind(searchTerm).all();
+                    `SELECT id, name, 'venue_admin' as type FROM venues WHERE name LIKE ? OR id IN (SELECT id FROM venues WHERE name LIKE ?) LIMIT 10`
+                ).bind(searchTerm, searchTerm).all();
                 if (venues) {
                     results.push(...venues.map((v: any) => ({
                         id: v.id,

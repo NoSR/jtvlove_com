@@ -1,5 +1,6 @@
 // Last updated: 2026-03-06 20:25 (Unified nickname search)
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { apiService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -161,8 +162,15 @@ const AdminMessages: React.FC = () => {
                                 </div>
                                 <p className="text-xs font-bold text-primary mb-1">{msg.subject || '(제목 없음)'}</p>
                                 <p className="text-xs text-gray-500 line-clamp-2">{msg.content}</p>
-                                {msg.sender_type === 'system' && (
-                                    <span className="inline-block mt-2 text-[9px] font-black bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full uppercase">시스템 알림</span>
+                                {msg.sender_type === 'system' ? (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="inline-block text-[9px] font-black bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full uppercase tracking-tighter">시스템 알림</span>
+                                        <span className="material-symbols-outlined text-blue-500 text-sm">notifications_active</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="material-symbols-outlined text-gray-300 text-sm">mail</span>
+                                    </div>
                                 )}
                             </div>
                         ))}
@@ -185,9 +193,21 @@ const AdminMessages: React.FC = () => {
                                     )}
                                 </div>
 
-                                <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-6 text-sm leading-relaxed whitespace-pre-wrap">
+                                <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-6 text-sm leading-relaxed whitespace-pre-wrap border border-gray-100 dark:border-white/5">
                                     {selectedMsg.content}
                                 </div>
+
+                                {selectedMsg.sender_type === 'system' && (
+                                    <div className="flex justify-center pt-2">
+                                        <Link
+                                            to="/admin/inquiry"
+                                            className="flex items-center gap-2 px-6 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">support_agent</span>
+                                            시스템 1:1 문의 접수하기
+                                        </Link>
+                                    </div>
+                                )}
 
                                 {selectedMsg.replied === 1 && selectedMsg.reply_text && (
                                     <div className="bg-primary/5 rounded-2xl p-6 border border-primary/10">
@@ -259,12 +279,14 @@ const AdminMessages: React.FC = () => {
                                     </div>
                                     {composeSearchResults.length > 0 && (
                                         <div className="mt-3 max-h-40 overflow-y-auto space-y-2">
-                                            {composeSearchResults.map(user => (
-                                                <div key={user.id} className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 border border-gray-100 dark:border-white/10 rounded-xl hover:border-primary cursor-pointer transition-colors" onClick={() => setComposeSelectedUser(user)}>
-                                                    <p className="font-bold text-sm tracking-tighter">{user.name}</p>
-                                                    <span className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-1 rounded">선택</span>
-                                                </div>
-                                            ))}
+                                            {composeSearchResults
+                                                .filter(u => u.id !== 'super') // 업체관리자에서는 슈퍼관리자 검색 제외 (문의하기 버튼 이용 유도)
+                                                .map(u => (
+                                                    <div key={u.id} className="flex items-center justify-between p-3 bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl hover:border-primary cursor-pointer transition-colors" onClick={() => setComposeSelectedUser(u)}>
+                                                        <p className="font-bold text-sm tracking-tighter">{u.label}</p>
+                                                        <span className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-2 py-1 rounded">선택</span>
+                                                    </div>
+                                                ))}
                                         </div>
                                     )}
                                 </div>
