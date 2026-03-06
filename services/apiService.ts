@@ -1205,6 +1205,46 @@ export const apiService = {
       console.error('getVenueNotices error:', error);
       return [];
     }
+  },
+
+  async createVenueNotice(data: { venue_id: string; title: string; content: string; is_pinned?: boolean }): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE}/venue-notices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return await response.json();
+    } catch (error: any) {
+      console.error('createVenueNotice error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateVenueNotice(data: { id: string; title: string; content: string; is_pinned?: boolean }): Promise<{ success: boolean }> {
+    try {
+      const response = await fetch(`${API_BASE}/venue-notices`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('updateVenueNotice error:', error);
+      return { success: false };
+    }
+  },
+
+  async deleteVenueNotice(id: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE}/venue-notices?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('deleteVenueNotice error:', error);
+      return false;
+    }
   }
 };
 

@@ -23,6 +23,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminProfile from './pages/admin/AdminProfile';
 import AdminReservations from './pages/admin/AdminReservations';
 import AdminCCAs from './pages/admin/AdminCCAs';
+import AdminNotices from './pages/admin/AdminNotices';
 
 // CCA Portal
 import CCAPortalLayout from './pages/cca/CCAPortalLayout';
@@ -363,6 +364,7 @@ const AdminLayoutRoutes = () => (
     <Route path="/profile" element={<AdminLayout><AdminProfile /></AdminLayout>} />
     <Route path="/reservations" element={<AdminLayout><AdminReservations /></AdminLayout>} />
     <Route path="/ccas" element={<AdminLayout><AdminCCAs /></AdminLayout>} />
+    <Route path="/notices" element={<AdminLayout><AdminNotices /></AdminLayout>} />
   </Routes>
 );
 
@@ -395,6 +397,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { path: '/admin/profile', name: '업소 설정', icon: 'storefront' },
     { path: '/admin/reservations', name: '예약 관리', icon: 'calendar_month' },
     { path: '/admin/ccas', name: '스태프 관리', icon: 'groups' },
+    { path: '/admin/notices', name: '공지사항', icon: 'campaign' },
   ];
 
   return (
