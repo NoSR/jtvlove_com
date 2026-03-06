@@ -1273,6 +1273,7 @@ export const apiService = {
     preferred_date?: string;
     preferred_time?: string;
     group_size?: number;
+    user_id?: string;
   }): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
       const response = await fetch(`${API_BASE}/cca-requests`, {

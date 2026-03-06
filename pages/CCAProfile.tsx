@@ -88,6 +88,22 @@ const CCAProfile: React.FC = () => {
     loadData();
   }, [id]);
 
+  const handleOpenRequestModal = () => {
+    if (!user) {
+      alert('지명 요청 기능을 이용하시려면 로그인이 필요합니다.\n로그인 페이지로 이동합니다.');
+      navigate('/login', { state: { returnTo: `/ccas/${id}` } });
+      return;
+    }
+
+    // 만약 유저 이름이나 연락처가 있다면 기본 폼에 값 넣어주기
+    setRequestForm(prev => ({
+      ...prev,
+      customerName: prev.customerName || user.nickname || user.realName || '',
+      customerContact: prev.customerContact || (user as any).phone || ''
+    }));
+    setShowRequestModal(true);
+  };
+
   const handleSubmitRequest = async () => {
     if (!cca || !requestForm.customerName) {
       alert('이름을 입력해주세요.');
@@ -105,7 +121,8 @@ const CCAProfile: React.FC = () => {
         customer_note: requestForm.customerNote,
         preferred_date: requestForm.preferredDate,
         preferred_time: requestForm.preferredTime,
-        group_size: requestForm.groupSize
+        group_size: requestForm.groupSize,
+        user_id: user?.id || ''
       });
       if (result.success) {
         setRequestSuccess(true);
@@ -208,7 +225,7 @@ const CCAProfile: React.FC = () => {
             {/* PC Desktop CTA - FIXED: 문구 변경 + 기능 연결 */}
             <div className="hidden md:block">
               <button
-                onClick={() => setShowRequestModal(true)}
+                onClick={handleOpenRequestModal}
                 className="w-full py-6 bg-primary text-[#1b180d] rounded-2xl font-black text-lg tracking-tight shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 uppercase"
               >
                 <span className="material-symbols-outlined font-black">calendar_month</span>
@@ -368,7 +385,7 @@ const CCAProfile: React.FC = () => {
       {/* Mobile Sticky Bottom CTA - FIXED: 문구 변경 + 기능 연결 */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-background-dark/80 backdrop-blur-xl border-t border-primary/10 px-6 py-4 z-50">
         <button
-          onClick={() => setShowRequestModal(true)}
+          onClick={handleOpenRequestModal}
           className="w-full bg-primary text-[#1b180d] py-5 rounded-2xl font-black text-lg tracking-tight shadow-2xl shadow-primary/30 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase"
         >
           <span className="material-symbols-outlined font-black">calendar_month</span>

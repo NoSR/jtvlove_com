@@ -22,9 +22,17 @@ export const onRequest: any = async (context: any) => {
         preferred_time TEXT,
         group_size INTEGER DEFAULT 1,
         status TEXT DEFAULT 'pending',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        user_id TEXT
       )
     `).run();
+
+        // Add user_id column if it doesn't exist (fails silently if it already does)
+        try {
+            await env.DB.prepare(`ALTER TABLE cca_requests ADD COLUMN user_id TEXT`).run();
+        } catch (e) {
+            // ignore error
+        }
     } catch (e) {
         console.error("cca_requests table init error:", e);
     }
@@ -63,7 +71,7 @@ export const onRequest: any = async (context: any) => {
     if (request.method === "POST") {
         try {
             const body = await request.json();
-            const { cca_id, venue_id, cca_name, venue_name, customer_name, customer_contact, customer_note, preferred_date, preferred_time, group_size } = body;
+            const { cca_id, venue_id, cca_name, venue_name, customer_name, customer_contact, customer_note, preferred_date, preferred_time, group_size, user_id } = body;
 
             if (!cca_id || !venue_id || !customer_name) {
                 return new Response(JSON.stringify({ error: "cca_id, venue_id, customer_name are required" }), {
@@ -73,9 +81,9 @@ export const onRequest: any = async (context: any) => {
 
             const id = `cr_${Date.now()}`;
             await env.DB.prepare(
-                `INSERT INTO cca_requests (id, cca_id, venue_id, cca_name, venue_name, customer_name, customer_contact, customer_note, preferred_date, preferred_time, group_size)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-            ).bind(id, cca_id, venue_id, cca_name || '', venue_name || '', customer_name, customer_contact || '', customer_note || '', preferred_date || '', preferred_time || '', group_size || 1).run();
+                `INSERT INTO cca_requests (id, cca_id, venue_id, cca_name, venue_name, customer_name, customer_contact, customer_note, preferred_date, preferred_time, group_size, user_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            ).bind(id, cca_id, venue_id, cca_name || '', venue_name || '', customer_name, customer_contact || '', customer_note || '', preferred_date || '', preferred_time || '', group_size || 1, user_id || '').run();
 
             return new Response(JSON.stringify({ success: true, id }), {
                 headers: { "Content-Type": "application/json" },
