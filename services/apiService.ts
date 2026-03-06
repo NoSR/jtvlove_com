@@ -1245,6 +1245,60 @@ export const apiService = {
       console.error('deleteVenueNotice error:', error);
       return false;
     }
+  },
+
+  // CCA 지명 요청 (CCA Nomination Requests)
+  async getCCARequests(params: { ccaId?: string; venueId?: string }): Promise<any[]> {
+    try {
+      const query = params.ccaId
+        ? `ccaId=${encodeURIComponent(params.ccaId)}`
+        : `venueId=${encodeURIComponent(params.venueId || '')}`;
+      const response = await fetch(`${API_BASE}/cca-requests?${query}`);
+      if (!response.ok) return [];
+      return await response.json();
+    } catch (error) {
+      console.error('getCCARequests error:', error);
+      return [];
+    }
+  },
+
+  async createCCARequest(data: {
+    cca_id: string;
+    venue_id: string;
+    cca_name?: string;
+    venue_name?: string;
+    customer_name: string;
+    customer_contact?: string;
+    customer_note?: string;
+    preferred_date?: string;
+    preferred_time?: string;
+    group_size?: number;
+  }): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      const response = await fetch(`${API_BASE}/cca-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return await response.json();
+    } catch (error: any) {
+      console.error('createCCARequest error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  async updateCCARequestStatus(id: string, status: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE}/cca-requests`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('updateCCARequestStatus error:', error);
+      return false;
+    }
   }
 };
 

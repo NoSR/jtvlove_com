@@ -11,6 +11,7 @@ const CCAPortalHome: React.FC = () => {
    const [attendance, setAttendance] = useState<any>(null);
    const [checkingIn, setCheckingIn] = useState(false);
    const [checkingOut, setCheckingOut] = useState(false);
+   const [ccaRequests, setCcaRequests] = useState<any[]>([]);
 
    // Message States
    const [selectedMessage, setSelectedMessage] = useState<any>(null);
@@ -20,9 +21,13 @@ const CCAPortalHome: React.FC = () => {
    const fetchData = useCallback(async () => {
       if (!user?.ccaId) return;
       setLoading(true);
-      const result = await apiService.getCCAPortalHome(user.ccaId);
+      const [result, requests] = await Promise.all([
+         apiService.getCCAPortalHome(user.ccaId),
+         apiService.getCCARequests({ ccaId: user.ccaId })
+      ]);
       setData(result);
       setAttendance(result?.attendance);
+      setCcaRequests(requests || []);
       setLoading(false);
    }, [user?.ccaId]);
 
@@ -193,6 +198,69 @@ const CCAPortalHome: React.FC = () => {
                </div>
             </div>
          </section>
+
+         {/* ──── 지명 요청 (Nomination Requests) ──── */}
+         {ccaRequests.length > 0 && (
+            <section className="bg-white dark:bg-zinc-900/80 rounded-3xl border border-primary/5 overflow-hidden">
+               <div className="flex items-center justify-between p-5 md:p-6 border-b border-primary/5">
+                  <div className="flex items-center gap-3">
+                     <div className="relative w-10 h-10 bg-pink-500/10 rounded-xl flex items-center justify-center">
+                        <span className="material-symbols-outlined text-pink-500 text-xl">favorite</span>
+                        {ccaRequests.filter((r: any) => r.status === 'pending').length > 0 && (
+                           <div className="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                              <span className="text-[9px] font-black text-white">{ccaRequests.filter((r: any) => r.status === 'pending').length}</span>
+                           </div>
+                        )}
+                     </div>
+                     <div>
+                        <h3 className="text-base font-black tracking-tight">지명 요청</h3>
+                        <p className="text-[11px] text-gray-400 font-medium">고객 지명 요청 {ccaRequests.filter((r: any) => r.status === 'pending').length}건 대기</p>
+                     </div>
+                  </div>
+               </div>
+               <div className="divide-y divide-primary/5">
+                  {ccaRequests.filter((r: any) => r.status === 'pending').slice(0, 5).map((req: any) => (
+                     <div key={req.id} className="p-5 md:p-6 hover:bg-pink-500/[0.02] transition-colors">
+                        <div className="flex items-start gap-4">
+                           <div className="w-10 h-10 bg-gradient-to-br from-pink-500/20 to-pink-400/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                              <span className="material-symbols-outlined text-pink-500 text-lg">person</span>
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold">{req.customer_name}</p>
+                              <p className="text-[11px] text-gray-400 font-medium mt-0.5">
+                                 {req.preferred_date} {req.preferred_time} · {req.group_size}명
+                              </p>
+                              {req.customer_note && <p className="text-xs text-gray-500 mt-1 italic">'{req.customer_note}'</p>}
+                              {req.customer_contact && <p className="text-[10px] text-gray-400 mt-1">연락처: {req.customer_contact}</p>}
+                           </div>
+                           <div className="flex gap-2 flex-shrink-0">
+                              <button
+                                 onClick={async () => {
+                                    const ok = await apiService.updateCCARequestStatus(req.id, 'confirmed');
+                                    if (ok) setCcaRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'confirmed' } : r));
+                                 }}
+                                 className="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-500/20 transition-colors"
+                              >수락</button>
+                              <button
+                                 onClick={async () => {
+                                    const ok = await apiService.updateCCARequestStatus(req.id, 'rejected');
+                                    if (ok) setCcaRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'rejected' } : r));
+                                 }}
+                                 className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded-xl text-[10px] font-black uppercase hover:bg-red-500/20 transition-colors"
+                              >거절</button>
+                           </div>
+                        </div>
+                     </div>
+                  ))}
+                  {ccaRequests.filter((r: any) => r.status === 'pending').length === 0 && (
+                     <div className="p-8 text-center">
+                        <span className="material-symbols-outlined text-3xl text-gray-300 dark:text-gray-600 mb-2">check_circle</span>
+                        <p className="text-sm text-gray-400 font-medium">대기 중인 지명 요청이 없습니다</p>
+                     </div>
+                  )}
+               </div>
+            </section>
+         )}
 
          {/* ──── 2+3. 오늘 예약 & 고객 메시지 (좌우 배치) ──── */}
          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
